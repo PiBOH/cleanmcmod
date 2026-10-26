@@ -1,0 +1,5 @@
+# A CRLF gradlew fails on Linux CI with "$'\r': command not found".
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+*.sh text eol=lf
+*.jar binary

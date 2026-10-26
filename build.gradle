@@ -1,0 +1,98 @@
+plugins {
+    id 'fabric-loom' version "${loom_version}"
+    id 'java'
+}
+
+// Support matrix. Pass -Pmc=<version> to build the same source tree for another
+// Minecraft release; without it the defaults in gradle.properties are used.
+// Every row states the exact Yarn build, Fabric API build and Java level that
+// version needs. Add a row only after that combination has actually compiled.
+def targets = [
+        '1.21.8' : [yarn: '1.21.8+build.1', api: '0.136.1+1.21.8', java: 21, menu: '15.0.2', dep: '>=1.21.8 <1.21.12'],
+        '1.21.9' : [yarn: '1.21.9+build.1', api: '0.134.1+1.21.9', java: 21, menu: '16.0.1', dep: '>=1.21.9 <1.21.12'],
+        '1.21.10': [yarn: '1.21.10+build.3', api: '0.138.4+1.21.10', java: 21, menu: '16.0.1', dep: '>=1.21.10 <1.21.12'],
+        '1.21.11': [yarn: '1.21.11+build.6', api: '0.141.6+1.21.11', java: 21, menu: '17.0.1', dep: '>=1.21.11 <1.21.12'],
+]
+
+// An explicit -P<name>=... always wins over the selected row.
+def cli = gradle.startParameter.projectProperties
+def target = cli['mc'] ? targets[cli['mc']] : null
+if (cli['mc'] && target == null) {
+    throw new GradleException("-Pmc=${cli['mc']} is not a supported target. Supported: ${targets.keySet().join(', ')}")
+}
+
+def mcVersion = cli['mc'] ?: minecraft_version
+def yarnMappings = cli['yarn_mappings'] ?: (target?.yarn ?: yarn_mappings)
+def fabricApiVersion = cli['fabric_api_version'] ?: (target?.api ?: fabric_api_version)
+def mcDep = cli['minecraft_dep'] ?: (target?.dep ?: minecraft_dep)
+def javaVersion = (cli['java_version'] ?: (target?.java ?: java_version)) as int
+// Mod Menu is optional at runtime; only its API is needed at compile time.
+def modMenuVersion = cli['modmenu_version'] ?: (target?.menu ?: modmenu_version)
+
+// version.txt is the single source of truth for the mod version.
+def modVersion = rootProject.file('version.txt').text.trim()
+version = "${modVersion}+${mcVersion}"
+group = 'piboh.cleanmc.mod'
+
+base {
+    archivesName = 'cleanmcmod'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'Terraformers'
+        url = 'https://maven.terraformersmc.com/releases'
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${mcVersion}"
+    mappings "net.fabricmc:yarn:${yarnMappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
+    modCompileOnly "com.terraformersmc:modmenu:${modMenuVersion}"
+
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'com.google.code.gson:gson:2.11.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+// The click and key-binding APIs changed in 1.21.9, so the handful of files that
+// touch them come from a per-API source directory instead of src/main/java.
+def compatDir = (cli['mc'] ?: '1.21.8') == '1.21.8' ? 'src/compat/1.21.8/java' : 'src/compat/1.21.9/java'
+sourceSets.main.java.srcDir compatDir
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = javaVersion
+}
+
+processResources {
+    inputs.property 'version', modVersion
+    inputs.property 'minecraft_dep', mcDep
+    filesMatching('fabric.mod.json') {
+        expand version: modVersion, minecraft_dep: mcDep
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+    }
+}
+
+jar {
+    from(rootProject.file('LICENSE')) {
+        rename { "${it}_cleanmcmod" }
+    }
+}

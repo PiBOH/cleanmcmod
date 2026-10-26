@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "cleanmcmod",
+  "version": "${version}",
+  "name": "CleanMCMod",
+  "description": "One-click cache cleaning for Minecraft, installed mods and resource packs. Clears the stale caches that cause broken textures, purple-and-black missing models and other interface glitches.",
+  "authors": [
+    "PiBOH"
+  ],
+  "contact": {
+    "homepage": "https://modrinth.com/mod/cleanmcmod",
+    "sources": "https://github.com/PiBOH/cleanmcmod",
+    "issues": "https://github.com/PiBOH/cleanmcmod/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/cleanmcmod/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "piboh.cleanmc.mod.CleanMcModClient"
+    ],
+    "modmenu": [
+      "piboh.cleanmc.mod.compat.CleanMcModMenu"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "${minecraft_dep}",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}

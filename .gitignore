@@ -1,0 +1,37 @@
+# Freebuff / local agent folders
+.ignore/
+.freebuff/
+
+# Gradle
+.gradle/
+build/
+out/
+
+# Local toolchain and scratch files
+.toolchain/
+.agent-tmp/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+*.launch
+
+# Loom / dev run directory and the client's own logs
+run/
+logs/
+remappedSrc/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local files that must never be committed
+.env
+run-*.log
+*.hprof

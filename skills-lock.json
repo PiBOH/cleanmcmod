@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "minecraft-modding": {
+      "source": "jahrome907/minecraft-agent-skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/minecraft-modding/SKILL.md",
+      "computedHash": "cee0a81cb1668adb338fff4c9db3c3feca181fd760644930ae3e77ea2c0f0b01"
+    },
+    "mod-any-game": {
+      "source": "rehan-remade/universal-modder",
+      "sourceType": "github",
+      "skillPath": "skills/mod-any-game/SKILL.md",
+      "computedHash": "00c292c138609f994f1ec9de0d0b8ad1f63f40e16f67db63e76dd524fa214d80"
+    },
+    "port-a-mod": {
+      "source": "rehan-remade/universal-modder",
+      "sourceType": "github",
+      "skillPath": "skills/port-a-mod/SKILL.md",
+      "computedHash": "e731277e8d2761ab2992e6a628aec12ed5513e5275047c8f571e5cafe5b14c0b"
+    }
+  }
+}
