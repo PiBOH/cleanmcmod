@@ -1,0 +1,122 @@
+name: Release
+
+# One release, every jar. Each supported Minecraft version is built from its own
+# branch (they have different mappings, Java levels and Loom plugins), the jars
+# are collected, and a single GitHub release is created with all of them.
+# Push a tag such as v0.2.0 (or run the workflow by hand) to publish.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.branch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ['1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch }}
+
+      # The 1.21.x branches pin a Java 21 toolchain; 26.x pins Java 25. Both are
+      # installed here so the same matrix job can build either line, and Gradle
+      # itself always runs on 25.
+      - name: Set up JDK 21 (1.21.x toolchain)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Set up JDK 25 (Gradle and Loom)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/wrapper-validation@v4
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and test ${{ matrix.branch }}
+        run: >-
+          ./gradlew clean build --no-daemon --stacktrace
+          -Porg.gradle.java.installations.paths="${JAVA_HOME_21_X64:-$JAVA_HOME}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jar-${{ matrix.branch }}
+          path: |
+            build/libs/*.jar
+            !build/libs/*-sources.jar
+          if-no-files-found: error
+
+  release:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create or update the release with every jar
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(tr -d '[:space:]' < version.txt)
+          if [ "$REF_TYPE" = "tag" ]; then tag="$REF_NAME"; else tag="v$version"; fi
+
+          echo "Releasing $tag with:"
+          ls -1 dist
+
+          notes=$(mktemp)
+          {
+            echo "CleanMCMod $tag - one jar per Minecraft version."
+            echo
+            echo "| Minecraft | Java | Jar |"
+            echo "|---|---|---|"
+            for jar in $(ls -1 dist | sort); do
+              mc=${jar#*+}; mc=${mc%.jar}
+              case "$mc" in
+                26.*) java=25 ;;
+                *)    java=21 ;;
+              esac
+              echo "| $mc | $java | \`$jar\` |"
+            done
+            echo
+            echo "**Tested configuration.** The author tests only the latest Minecraft"
+            echo "version. Every other branch is provided **as is**: it compiles and its"
+            echo "unit tests pass, but no in-game guarantee is made for it."
+            echo
+            echo "Client only: install it in \`mods/\` next to Fabric API. Mod Menu is"
+            echo "optional. Release notes and the change log live in the repository;"
+            echo "the project page is https://piboh.github.io/cleanmcmod/"
+          } > "$notes"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/*.jar --clobber
+            gh release edit "$tag" --notes-file "$notes"
+          else
+            gh release create "$tag" dist/*.jar \
+              --title "CleanMCMod $tag" \
+              --target main \
+              --notes-file "$notes"
+          fi
