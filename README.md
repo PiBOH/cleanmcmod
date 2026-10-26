@@ -1,5 +1,9 @@
 # CleanMCMod
 
+<p align="center">
+  <img src="src/main/resources/assets/cleanmcmod/icon.png" alt="CleanMCMod" width="180">
+</p>
+
 Client-side cache cleaner for Minecraft, the mods you have installed and the
 resource packs they use. Stale caches are what make the game render wrong —
 purple-and-black missing models, textures that never refresh, broken resource
