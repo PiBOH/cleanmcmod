@@ -5,7 +5,7 @@ name: Build 1.21.11
 # row in that file has been compiled locally before this workflow was added.
 on:
   push:
-    branches: ['1.21.11', main]
+    branches: ['1.21.11']
   pull_request:
   workflow_dispatch:
 
