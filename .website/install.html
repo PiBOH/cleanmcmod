@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Install CleanMCMod, open the menu with F7 or the title screen button, and use /cleanmcmod from chat.">
+<title>Install - CleanMCMod</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="icon.png">
+<script defer src="script.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="site-header">
+  <div class="container header-main">
+    <a class="brand" href="index.html">
+      <span class="brand-mark"><img src="icon.png" alt="CleanMCMod logo"></span>
+      <span><span class="brand-name">CleanMCMod</span><span class="brand-subtitle">Cache cleaner for Minecraft: Java Edition</span></span>
+    </a>
+    <div class="header-meta">
+      <strong>Client-side only</strong>
+      Fabric Loader &middot; 1.21.8 - 26.3<br>
+      <a href="https://github.com/PiBOH/cleanmcmod">GitHub repository</a>
+    </div>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+  </div>
+  <nav class="site-nav" aria-label="Main navigation">
+    <ul class="container nav-list" id="primary-nav">
+      <li><a href="index.html">Main Page</a></li>
+      <li><a href="install.html" aria-current="page">Install</a></li>
+      <li><a href="versions.html">Versions</a></li>
+      <li><a href="https://modrinth.com/mod/cleanmcmod">Modrinth</a></li>
+      <li><a href="https://github.com/PiBOH/cleanmcmod">Source</a></li>
+      <li><a href="https://github.com/PiBOH/cleanmcmod/issues">Issues</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main-content" class="page-layout">
+  <aside class="sidebar">
+    <h2 class="sidebar-heading">On this page</h2>
+    <ul>
+      <li><a href="#requirements">Requirements</a></li>
+      <li><a href="#ingame">In game</a></li>
+      <li><a href="#settings">Settings</a></li>
+      <li><a href="#source">Build from source</a></li>
+      <li><a href="#modmenu">Mod Menu</a></li>
+    </ul>
+    <div class="sidebar-note">CleanMCMod is a <strong>client</strong> mod. It is not installed on a server and has no server side.</div>
+  </aside>
+
+  <section class="content">
+    <p class="breadcrumb">You are here: <a href="index.html">Main Page</a> &rsaquo; Install</p>
+    <h1>Install CleanMCMod</h1>
+    <p class="lead">Three things are needed: Fabric Loader, Fabric API, and the CleanMCMod jar built for your exact Minecraft version.</p>
+
+    <h2 id="requirements">Requirements</h2>
+    <table class="catalog-table compact">
+      <caption>What the game needs</caption>
+      <tr><th>Component</th><th>Version</th></tr>
+      <tr><td>Minecraft: Java Edition</td><td>1.21.8, 1.21.9, 1.21.10, 1.21.11 or 26.1, 26.2, 26.3 - see <a href="versions.html">versions</a></td></tr>
+      <tr><td>Java</td><td>21 on 1.21.x, 25 on 26.x (as the game itself requires)</td></tr>
+      <tr><td>Fabric Loader</td><td>0.16.0 or newer (0.20.1 is what CI builds against)</td></tr>
+      <tr><td>Fabric API</td><td>required at runtime</td></tr>
+      <tr><td>Mod Menu</td><td><span class="status fallback">optional</span> adds the Config button</td></tr>
+    </table>
+    <p>Drop the jar in <code>mods/</code> next to Fabric API. The jar declares <code>environment: client</code>, so a dedicated server ignores it.</p>
+
+    <h2 id="ingame">In game</h2>
+    <table class="catalog-table compact">
+      <caption>Ways to open CleanMCMod</caption>
+      <tr><th>Entry point</th><th>What it does</th></tr>
+      <tr><td><kbd>F7</kbd></td><td>Opens the main screen from anywhere; rebindable under Controls</td></tr>
+      <tr><td>Title screen button</td><td><strong>CleanMCMod&hellip;</strong> in the top right corner, before a world is loaded</td></tr>
+      <tr><td><code>/cleanmcmod scan</code></td><td>Lists every cache present with its file count and size</td></tr>
+      <tr><td><code>/cleanmcmod clean</code></td><td>Runs a clean (or a dry run when that setting is on) and reports the totals</td></tr>
+      <tr><td><code>/cleanmcmod screen</code></td><td>Opens the same screen as F7</td></tr>
+    </table>
+    <p>The main screen lists each cache with its size, a <strong>Dry run</strong> line that says nothing will be deleted while that setting is on, and buttons for <strong>Clean now</strong>, <strong>Rescan</strong>, <strong>Settings&hellip;</strong> and <strong>Update mods&hellip;</strong>.</p>
+
+    <h2 id="settings">Settings</h2>
+    <p>Eight toggles, saved to <code>config/cleanmcmod.json</code> the moment you change them:</p>
+    <table class="catalog-table compact">
+      <caption>config/cleanmcmod.json</caption>
+      <tr><th>Setting</th><th>Effect</th></tr>
+      <tr><td>Game logs</td><td>Include <code>logs/</code> in a clean</td></tr>
+      <tr><td>Crash reports</td><td>Include <code>crash-reports/</code></td></tr>
+      <tr><td>Debug dumps</td><td>Include the game's debug dump files</td></tr>
+      <tr><td>Server resource packs</td><td>Include the cached server resource pack</td></tr>
+      <tr><td>Loader and mod caches</td><td>Include the Fabric remapped-jar cache and Mixin debug output</td></tr>
+      <tr><td>Asset cache</td><td>Include the deep asset cache; the game re-downloads it from Mojang</td></tr>
+      <tr><td>Mod-cache auto-detection</td><td>Find <code>config/&lt;mod&gt;/&hellip;/cache</code> folders and treat them as optional targets</td></tr>
+      <tr><td>Dry run</td><td>Measure and report, delete nothing</td></tr>
+    </table>
+
+    <h2 id="source">Build from source</h2>
+    <p>Every version lives on its own branch; the wrapper is checked in, so no Gradle installation is required.</p>
+<pre class="command">git clone https://github.com/PiBOH/cleanmcmod
+cd cleanmcmod
+git switch 26.3            # or 1.21.11, 26.1, 1.21.8 ...
+
+export JAVA_HOME=/path/to/jdk-25   # JDK 25 builds every branch
+./gradlew clean build              # jar in build/libs/</pre>
+    <p>The artifact is <code>cleanmcmod-&lt;mod version&gt;+&lt;minecraft version&gt;.jar</code>; that file is what gets uploaded to Modrinth.</p>
+    <div class="notice warning"><strong>Java levels:</strong> 1.21.x branches compile and run on Java 21, 26.x branches on Java 25. Gradle and Loom always run on JDK 25.</div>
+
+    <h2 id="modmenu">Optional Mod Menu</h2>
+    <p>If <a href="https://modrinth.com/mod/modmenu">Mod Menu</a> is installed, CleanMCMod appears in its list and its <strong>Config</strong> button opens the settings screen. Mod Menu is compiled against with <code>compileOnly</code> and declared as <code>suggests</code>, never <code>depends</code>: without it the game boots normally and no Mod Menu class is loaded.</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-links">
+    <a href="index.html">Main Page</a>
+    <a href="install.html">Install</a>
+    <a href="versions.html">Versions</a>
+    <a href="https://modrinth.com/mod/cleanmcmod">Modrinth</a>
+    <a href="https://github.com/PiBOH/cleanmcmod">GitHub</a>
+    <a href="https://github.com/PiBOH/cleanmcmod/issues">Contact / Issues</a>
+  </div>
+  <div class="container footer-note">CleanMCMod is distributed under the <a href="https://github.com/PiBOH/cleanmcmod/blob/main/LICENSE">MIT License</a>. No analytics or tracking are used by this website.</div>
+</footer>
+</body>
+</html>

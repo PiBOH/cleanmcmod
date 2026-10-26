@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="CleanMCMod supported Minecraft versions and the branch that builds each one.">
+<title>Versions - CleanMCMod</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="icon.png">
+<script defer src="script.js"></script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="site-header">
+  <div class="container header-main">
+    <a class="brand" href="index.html">
+      <span class="brand-mark"><img src="icon.png" alt="CleanMCMod logo"></span>
+      <span><span class="brand-name">CleanMCMod</span><span class="brand-subtitle">Cache cleaner for Minecraft: Java Edition</span></span>
+    </a>
+    <div class="header-meta">
+      <strong>Client-side only</strong>
+      Fabric Loader &middot; 1.21.8 - 26.3<br>
+      <a href="https://github.com/PiBOH/cleanmcmod">GitHub repository</a>
+    </div>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+  </div>
+  <nav class="site-nav" aria-label="Main navigation">
+    <ul class="container nav-list" id="primary-nav">
+      <li><a href="index.html">Main Page</a></li>
+      <li><a href="install.html">Install</a></li>
+      <li><a href="versions.html" aria-current="page">Versions</a></li>
+      <li><a href="https://modrinth.com/mod/cleanmcmod">Modrinth</a></li>
+      <li><a href="https://github.com/PiBOH/cleanmcmod">Source</a></li>
+      <li><a href="https://github.com/PiBOH/cleanmcmod/issues">Issues</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="main-content" class="page-layout">
+  <aside class="sidebar">
+    <h2 class="sidebar-heading">Browse</h2>
+    <ul>
+      <li><a href="#matrix">Support matrix</a></li>
+      <li><a href="#java">Java requirements</a></li>
+      <li><a href="#release">Release notes</a></li>
+      <li><a href="install.html">Install and use</a></li>
+    </ul>
+    <div class="sidebar-note">One branch per Minecraft version: build it with <code>./gradlew clean build</code>, no extra flags.</div>
+  </aside>
+
+  <section class="content">
+    <p class="breadcrumb">You are here: <a href="index.html">Main Page</a> &rsaquo; Versions</p>
+    <h1>Supported versions</h1>
+    <p class="lead">Seven release branches, one per Minecraft version. Each one is pinned to its Fabric API and Mod Menu builds and has its own CI workflow, so a jar can be built and published for that version alone.</p>
+
+    <h2 id="matrix">Support matrix</h2>
+    <table class="catalog-table">
+      <caption>Branches and artifacts</caption>
+      <tr><th>Branch</th><th>Minecraft</th><th>Java</th><th>Mappings</th><th>Artifact</th></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.8">1.21.8</a></td><td>1.21.8</td><td>21</td><td>Yarn 1.21.8+build.1</td><td><code>cleanmcmod-0.1.0+1.21.8.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.9">1.21.9</a></td><td>1.21.9</td><td>21</td><td>Yarn 1.21.9+build.1</td><td><code>cleanmcmod-0.1.0+1.21.9.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.10">1.21.10</a></td><td>1.21.10</td><td>21</td><td>Yarn 1.21.10+build.3</td><td><code>cleanmcmod-0.1.0+1.21.10.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.11">1.21.11</a></td><td>1.21.11</td><td>21</td><td>Yarn 1.21.11+build.6</td><td><code>cleanmcmod-0.1.0+1.21.11.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/26.1">26.1</a></td><td>26.1</td><td>25</td><td>unobfuscated</td><td><code>cleanmcmod-0.2.0+26.1.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/26.2">26.2</a></td><td>26.2</td><td>25</td><td>unobfuscated</td><td><code>cleanmcmod-0.2.0+26.2.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/26.3">26.3</a></td><td>26.3</td><td>25</td><td>unobfuscated</td><td><code>cleanmcmod-0.2.0+26.3.jar</code></td></tr>
+    </table>
+
+    <h2 id="java">Java requirements</h2>
+    <div class="detail-list">
+      <dl>
+        <dt>1.21.x branches</dt><dd>Java 21, Yarn mappings, remapping Loom (<code>fabric-loom</code>)</dd>
+        <dt>26.x branches</dt><dd>Java 25, official class names, non-remapping Loom (<code>net.fabricmc.fabric-loom</code>)</dd>
+        <dt>Gradle and Loom</dt><dd>always run on JDK 25, on every branch</dd>
+        <dt>fabric.mod.json</dt><dd>declares <code>java &gt;= 21</code> on 1.21.x and <code>java &gt;= 25</code> on 26.x</dd>
+      </dl>
+    </div>
+    <div class="notice"><strong>Why two toolchains:</strong> Minecraft 26.1 and newer ship unobfuscated, so there are no Yarn mappings and no remap step; the code compiles against the official names instead. That is why the 26.x line lives on separate branches rather than in one source tree with the 1.21.x line.</div>
+
+    <h2 id="release">Release notes</h2>
+    <ul class="list-tight">
+      <li>Each branch builds exactly one jar: <code>./gradlew clean build</code> in the branch, artifact in <code>build/libs/</code>.</li>
+      <li>That jar is the file published on Modrinth for its game version (loader: Fabric, environment: client).</li>
+      <li>CI builds and tests every branch on each push; the workflows are <code>build-&lt;version&gt;.yml</code>.</li>
+      <li>The project icon is <code>logo.png</code> at the repository root, with a 64 pixel variant in <code>logo-64.png</code>.</li>
+      <li>Mod Menu is optional on every branch: the jar only <em>suggests</em> it.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-links">
+    <a href="index.html">Main Page</a>
+    <a href="install.html">Install</a>
+    <a href="versions.html">Versions</a>
+    <a href="https://modrinth.com/mod/cleanmcmod">Modrinth</a>
+    <a href="https://github.com/PiBOH/cleanmcmod">GitHub</a>
+    <a href="https://github.com/PiBOH/cleanmcmod/issues">Contact / Issues</a>
+  </div>
+  <div class="container footer-note">CleanMCMod is distributed under the <a href="https://github.com/PiBOH/cleanmcmod/blob/main/LICENSE">MIT License</a>. No analytics or tracking are used by this website.</div>
+</footer>
+</body>
+</html>
