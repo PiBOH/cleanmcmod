@@ -1,5 +1,9 @@
 # CleanMCMod
 
+<p align="center">
+  <img src="src/main/resources/assets/cleanmcmod/icon.png" alt="CleanMCMod" width="180">
+</p>
+
 Client-side cache cleaner for Minecraft, the mods you have installed and the
 resource packs they use. Stale caches are what make the game render wrong —
 purple-and-black missing models, textures that never refresh, broken resource
@@ -107,6 +111,14 @@ No hiding of installed mods from a server, no anti-cheat or mod-detection
 evasion, and no pretending that a server resource pack was accepted. Those
 break the Modrinth content rules and server terms of service, so they are
 deliberately absent and will stay absent.
+
+## Publishing a release
+
+Each branch builds one Minecraft version: `./gradlew clean build` in a branch
+produces `build/libs/cleanmcmod-<mod version>+<minecraft version>.jar`, which is
+the file uploaded to [Modrinth](https://modrinth.com/mod/cleanmcmod) for that
+game version (loader: Fabric, environment: client). The listing icon is
+`src/main/resources/assets/cleanmcmod/icon.png`, the framed logo.
 
 ## License
 
