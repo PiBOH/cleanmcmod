@@ -113,6 +113,14 @@ evasion, and no pretending that a server resource pack was accepted. Those
 break the Modrinth content rules and server terms of service, so they are
 deliberately absent and will stay absent.
 
+## Publishing a release
+
+Each branch builds one Minecraft version: `./gradlew clean build` in a branch
+produces `build/libs/cleanmcmod-<mod version>+<minecraft version>.jar`, which is
+the file uploaded to [Modrinth](https://modrinth.com/mod/cleanmcmod) for that
+game version (loader: Fabric, environment: client). The listing icon is
+`src/main/resources/assets/cleanmcmod/icon.png`, the framed logo.
+
 ## License
 
 MIT — see `LICENSE`.
