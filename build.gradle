@@ -1,17 +1,18 @@
 plugins {
-    id 'fabric-loom' version "${loom_version}"
-    id 'java'
+    // Minecraft 26.1 and newer ship unobfuscated, so this branch uses Loom's
+    // non-remapping plugin: no mappings, no remap step, official class names.
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
 // Support matrix. Pass -Pmc=<version> to build the same source tree for another
-// Minecraft release; without it the defaults in gradle.properties are used.
-// Every row states the exact Yarn build, Fabric API build and Java level that
-// version needs. Add a row only after that combination has actually compiled.
+// 26.x release; without it the defaults in gradle.properties are used.
+// Every row states the exact Fabric API build, Mod Menu build and Minecraft
+// dependency range that version needs. Add a row only after that combination
+// has actually compiled.
 def targets = [
-        '1.21.8' : [yarn: '1.21.8+build.1', api: '0.136.1+1.21.8', java: 21, menu: '15.0.2', dep: '>=1.21.8 <1.21.12'],
-        '1.21.9' : [yarn: '1.21.9+build.1', api: '0.134.1+1.21.9', java: 21, menu: '16.0.1', dep: '>=1.21.9 <1.21.12'],
-        '1.21.10': [yarn: '1.21.10+build.3', api: '0.138.4+1.21.10', java: 21, menu: '16.0.1', dep: '>=1.21.10 <1.21.12'],
-        '1.21.11': [yarn: '1.21.11+build.6', api: '0.141.6+1.21.11', java: 21, menu: '17.0.1', dep: '>=1.21.11 <1.21.12'],
+        '26.1': [api: '0.145.1+26.1', menu: '18.0.2', dep: '>=26.1 <26.2'],
+        '26.2': [api: '0.161.0+26.2', menu: '20.0.3', dep: '>=26.2 <26.3'],
+        '26.3': [api: '0.165.0+26.3', menu: '21.0.0', dep: '>=26.3 <26.4'],
 ]
 
 // An explicit -P<name>=... always wins over the selected row.
@@ -22,10 +23,8 @@ if (cli['mc'] && target == null) {
 }
 
 def mcVersion = cli['mc'] ?: minecraft_version
-def yarnMappings = cli['yarn_mappings'] ?: (target?.yarn ?: yarn_mappings)
 def fabricApiVersion = cli['fabric_api_version'] ?: (target?.api ?: fabric_api_version)
 def mcDep = cli['minecraft_dep'] ?: (target?.dep ?: minecraft_dep)
-def javaVersion = (cli['java_version'] ?: (target?.java ?: java_version)) as int
 // Mod Menu is optional at runtime; only its API is needed at compile time.
 def modMenuVersion = cli['modmenu_version'] ?: (target?.menu ?: modmenu_version)
 
@@ -48,10 +47,11 @@ repositories {
 
 dependencies {
     minecraft "com.mojang:minecraft:${mcVersion}"
-    mappings "net.fabricmc:yarn:${yarnMappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
-    modCompileOnly "com.terraformersmc:modmenu:${modMenuVersion}"
+    // No mappings on 26.x: the loader, Fabric API and Mod Menu jars are all
+    // compiled against the same official names as the game itself.
+    implementation "net.fabricmc:fabric-loader:${loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabricApiVersion}"
+    compileOnly "com.terraformersmc:modmenu:${modMenuVersion}"
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -59,21 +59,17 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
-// The click and key-binding APIs changed in 1.21.9, so the handful of files that
-// touch them come from a per-API source directory instead of src/main/java.
-def compatDir = (cli['mc'] ?: '1.21.8') == '1.21.8' ? 'src/compat/1.21.8/java' : 'src/compat/1.21.9/java'
-sourceSets.main.java.srcDir compatDir
-
 java {
+    // 26.x targets Java 25; Loom's own build also runs on a JDK 25.
     toolchain {
-        languageVersion = JavaLanguageVersion.of(javaVersion)
+        languageVersion = JavaLanguageVersion.of(25)
     }
     withSourcesJar()
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.release = javaVersion
+    options.release = 25
 }
 
 processResources {

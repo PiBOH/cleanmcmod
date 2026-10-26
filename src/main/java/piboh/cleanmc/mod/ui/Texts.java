@@ -3,8 +3,8 @@ package piboh.cleanmc.mod.ui;
 import piboh.cleanmc.mod.clean.CacheTarget;
 import piboh.cleanmc.mod.clean.CleanReport;
 import piboh.cleanmc.mod.clean.TargetResult;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 /** Localised labels shared by the screens and the client command. */
 public final class Texts {
@@ -17,14 +17,14 @@ public final class Texts {
     private Texts() {
     }
 
-    public static Text targetName(CacheTarget target) {
+    public static Component targetName(CacheTarget target) {
         return target.label() != null
-                ? Text.literal(target.label())
-                : Text.translatable(target.translationKey());
+                ? Component.literal(target.label())
+                : Component.translatable(target.translationKey());
     }
 
-    public static Text status(TargetResult result) {
-        return Text.translatable("cleanmcmod.status." + result.status().name().toLowerCase(java.util.Locale.ROOT));
+    public static Component status(TargetResult result) {
+        return Component.translatable("cleanmcmod.status." + result.status().name().toLowerCase(java.util.Locale.ROOT));
     }
 
     public static int statusColor(TargetResult result) {
@@ -37,8 +37,8 @@ public final class Texts {
         };
     }
 
-    public static MutableText bytes(long bytes) {
-        return Text.literal(CleanReport.formatBytes(bytes));
+    public static MutableComponent bytes(long bytes) {
+        return Component.literal(CleanReport.formatBytes(bytes));
     }
 
 }

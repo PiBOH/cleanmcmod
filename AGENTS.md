@@ -11,15 +11,18 @@ the asset cache, plus the per-mod cache folders that mods create under
 `config/<mod>/`. It also lists the mods installed in `mods/` and, on request,
 installs newer versions from the Modrinth API.
 
-- **Language/build**: Java 21 source/target, Gradle (Fabric Loom 1.19.3).
+- **Language/build**: Java 25 source/target, Gradle (Fabric Loom 1.19.3 via the
+  `net.fabricmc.fabric-loom` plugin).
 - **Loader**: Fabric Loader. The jar is built against `piboh.cleanmc.mod` and
   declares `environment: client` — it never runs on a dedicated server.
-- **Targets**: Minecraft 1.21.8, 1.21.9, 1.21.10 and 1.21.11 (Java 21) — all
-  four compile, each with its own CI workflow. 26.1 / 26.2 / 26.3 are **not**
-  supported yet: Fabric publishes no Yarn mappings for 26.x and the game ships
-  unobfuscated, so it needs the `1.19-SNAPSHOT` Loom line and a rename of every
-  Minecraft-facing class. The version is a build dimension (`-Pmc=`), not a
-  branch of code.
+- **Targets**: Minecraft 26.1, 26.2 and 26.3 (Java 25) — all three compile,
+  each with its own CI workflow. 26.x ships **unobfuscated**: there are no Yarn
+  mappings and no remap step, so the source uses the official class names
+  (`Screen`, `Component`, `GuiGraphicsExtractor`, `Identifier`, ...) and the
+  loader, Fabric API and Mod Menu are plain `implementation`/`compileOnly`
+  dependencies. The 1.21.8–1.21.11 Yarn line stays on `main`; this line keeps
+  one branch per game version (`26.1`, `26.2`, `26.3`), with the version as a
+  build dimension (`-Pmc=`) rather than a different source tree.
 - **Version**: `version.txt` at the repo root is the single source of truth.
   `build.gradle` reads it; `fabric.mod.json` is expanded from it. Never
   hard-code a version in Java or in the JSON.
@@ -33,9 +36,9 @@ Root package `piboh.cleanmc.mod`, four concerns, one owner of state each:
 | `clean` | `CacheTargets`, `CacheTarget`, `CacheCategory`, `CacheSafety`, `CacheScanner`, `CacheScan`, `TargetState`, `CacheAutoDetector`, `CacheCleaner`, `CleanReport`, `TargetResult`, `TargetStatus` | Pure filesystem work: what counts as a cache, how it is measured, how it is deleted. No Minecraft classes. |
 | `config` | `CleanMcModConfig` | The eight settings + `extraPaths`, stored as `config/cleanmcmod.json`. Gson, saved on every toggle. |
 | `update` | `ModScanner`, `LocalMod`, `ModVersion`, `Dependency`, `ModrinthClient`, `Updates`, `ModUpdate`, `Compatibility`, `VersionRange`, `ModUpdaterService`, `ModInstaller`, `VersionComparator` | Installed-mod scan, Modrinth queries, the update decision, the dependency pre-flight (`Compatibility`/`VersionRange`: install, warn or block with a reason, plus the plan that fetches the missing required dependencies one level deep), the download/verify/replace step. |
-| `ui` | `CleanMenuScreen`, `CacheSettingsScreen`, `ModUpdatesScreen`, `AbstractUpdatesScreen`, `ConfirmInstallScreen`, `Texts`, `MenuKey` | Rendering and input only. Screens read state, call a service, draw the result. `ModUpdatesScreen` and `MenuKey` are two-file shims under `src/compat/<api>/` because the click and key-binding signatures changed in 1.21.9; everything else lives in `src/main/java`. |
+| `ui` | `CleanMenuScreen`, `CacheSettingsScreen`, `ModUpdatesScreen`, `AbstractUpdatesScreen`, `ConfirmInstallScreen`, `Texts`, `MenuKey` | Rendering and input only. Screens read state, call a service, draw the result. All of them live in `src/main/java`: 26.x has one input API (`MouseButtonEvent`, `KeyMapping.Category`), so the 1.21.x `src/compat/<api>/` shims are gone. A screen draws in `extractRenderState(GuiGraphicsExtractor, int, int, float)`, not in a `render(DrawContext, ...)` method. |
 | `command` | `CleanMcModCommand` | `/cleanmcmod scan|clean|screen` through Fabric's client command API. |
-| `compat` | `CleanMcModMenu` | Optional Mod Menu integration, named only by the `modmenu` entrypoint. Compiled against `modmenu` with `modCompileOnly`, so a game without Mod Menu never loads it; `modmenu` is `suggests`, never `depends`. |
+| `compat` | `CleanMcModMenu` | Optional Mod Menu integration, named only by the `modmenu` entrypoint. Compiled against `modmenu` with `compileOnly` (no remapping on 26.x), so a game without Mod Menu never loads it; `modmenu` is `suggests`, never `depends`. |
 | root | `CleanMcMod`, `CleanMcModClient` | Mod initializer + static service accessors. |
 
 Rules of ownership:
@@ -60,8 +63,8 @@ Rules of ownership:
 - **Screen code draws, it does not compute.** If a screen starts growing logic
   (a decision, a filesystem walk, a version comparison), it belongs in a
   service or in the corresponding pure class.
-- **Colours are ARGB.** `DrawContext.drawText`/`drawCenteredTextWithShadow`
-  take `0xAARRGGBB`; `0xFFFFFF` renders nothing (alpha 0). Use `0xFFFFFFFF` for
+- **Colours are ARGB.** `GuiGraphicsExtractor.text`/`centeredText` take
+  `0xAARRGGBB`; `0xFFFFFF` renders nothing (alpha 0). Use `0xFFFFFFFF` for
   white and the `Texts.COLOR_*` constants for everything else.
 - **Never let a screen print a raw translation key.** Every user-visible string
   goes through `Text.translatable(...)` and exists in **every** file under
@@ -95,12 +98,8 @@ Rules of ownership:
 ## 4. Build, run and test
 
 The wrapper is checked in (`gradle/wrapper`, Gradle 9.8.2, distribution
-checksum pinned). Two JDKs are needed: Loom 1.19.3 refuses Java 21 as its own
-JVM, so Gradle and Loom run on **JDK 25**, while `build.gradle` pins a Java 21
-toolchain that must also be installed (no toolchain download repositories are
-configured). CI installs both and passes the 21 home through
-`-Porg.gradle.java.installations.paths`; locally a JDK 21 in a standard
-location is auto-detected, otherwise pass the same property:
+checksum pinned). One JDK is needed: **JDK 25** runs Gradle, Loom and the Java
+25 toolchain / release level that 26.x requires. CI installs it the same way.
 
 ```bash
 export JAVA_HOME=/path/to/jdk-25
@@ -108,11 +107,11 @@ export JAVA_HOME=/path/to/jdk-25
 ./gradlew test             # JUnit only
 ./gradlew runClient        # dev client, game dir ./run
 
-# only if the Java 21 toolchain is not auto-detected:
-./gradlew clean build -Porg.gradle.java.installations.paths=/path/to/jdk-21
+# the same tree builds any 26.x target in the support matrix:
+./gradlew clean build -Pmc=26.1
 ```
 
-- The test suite must stay green (`50` tests at the time of writing). Tests are
+- The test suite must stay green (`73` tests at the time of writing). Tests are
   plain JUnit 5 and cover the pure logic: cache cleaning, auto-detection
   depth, config round-trip, version comparison, update selection, Modrinth
   payload parsing, installer safety, updater state transitions.
@@ -197,9 +196,8 @@ Refactors happen only when a behaviour must change anyway.
 - No mod hiding, no anti-cheat evasion, no server resource-pack bypass.
 - No Quilt-specific testing (the code is Fabric only; Quilt compatibility is
   unproven).
-- No builds for 26.1/26.2/26.3: the mapping artifact does not exist for those
-  versions (Yarn stops at 1.21.11) and the mapping-less build Loom needs is a
-  SNAPSHOT, so those targets have no workflow.
+- No 1.21.x builds on this branch: those targets need Yarn mappings and the
+  remapping Loom plugin, and they live on `main`.
 - No `/cleanmcmod` verification inside a loaded world (the command is exercised
   through the same service as the GUI button).
 - No published release; CI only compiles and tests (`./gradlew build`), it

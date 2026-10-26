@@ -6,11 +6,11 @@ import piboh.cleanmc.mod.clean.CleanReport;
 import piboh.cleanmc.mod.clean.TargetResult;
 import piboh.cleanmc.mod.clean.TargetState;
 import piboh.cleanmc.mod.update.ModUpdaterService;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.TitleScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ public class CleanMenuScreen extends Screen {
     private CleanReport shownReport;
 
     public CleanMenuScreen(CleanMcModService service, ModUpdaterService updater) {
-        super(Text.translatable("cleanmcmod.screen.main.title"));
+        super(Component.translatable("cleanmcmod.screen.main.title"));
         this.service = service;
         this.updater = updater;
     }
@@ -38,28 +38,28 @@ public class CleanMenuScreen extends Screen {
         int centerX = this.width / 2;
         int buttonY = this.height - 76;
 
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("cleanmcmod.button.clean"), button -> service.cleanAsync())
-                .dimensions(centerX - BUTTON_WIDTH - 2, buttonY, BUTTON_WIDTH, 20)
+        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.clean"), button -> service.cleanAsync())
+                .bounds(centerX - BUTTON_WIDTH - 2, buttonY, BUTTON_WIDTH, 20)
                 .build());
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("cleanmcmod.button.rescan"), button -> this.scan = service.scan())
-                .dimensions(centerX + 2, buttonY, BUTTON_WIDTH, 20)
+        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.rescan"), button -> this.scan = service.scan())
+                .bounds(centerX + 2, buttonY, BUTTON_WIDTH, 20)
                 .build());
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("cleanmcmod.button.update_mods"),
-                        button -> this.client.setScreen(new ModUpdatesScreen(this, updater)))
-                .dimensions(centerX - BUTTON_WIDTH - 2, buttonY + 24, BUTTON_WIDTH, 20)
+        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.update_mods"),
+                        button -> this.minecraft.setScreenAndShow(new ModUpdatesScreen(this, updater)))
+                .bounds(centerX - BUTTON_WIDTH - 2, buttonY + 24, BUTTON_WIDTH, 20)
                 .build());
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("cleanmcmod.button.settings"),
-                        button -> this.client.setScreen(new CacheSettingsScreen(this, service)))
-                .dimensions(centerX + 2, buttonY + 24, BUTTON_WIDTH, 20)
+        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.settings"),
+                        button -> this.minecraft.setScreenAndShow(new CacheSettingsScreen(this, service)))
+                .bounds(centerX + 2, buttonY + 24, BUTTON_WIDTH, 20)
                 .build());
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> this.close())
-                .dimensions(centerX - BUTTON_WIDTH / 2, buttonY + 48, BUTTON_WIDTH, 20)
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> this.onClose())
+                .bounds(centerX - BUTTON_WIDTH / 2, buttonY + 48, BUTTON_WIDTH, 20)
                 .build());
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 
         CleanReport report = service.lastReport();
         if (report != shownReport) {
@@ -68,40 +68,40 @@ public class CleanMenuScreen extends Screen {
         }
 
         int centerX = this.width / 2;
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 14, 0xFFFFFFFF);
+        graphics.centeredText(this.font, this.title, centerX, 14, 0xFFFFFFFF);
 
         if (service.config().dryRun) {
-            context.drawCenteredTextWithShadow(this.textRenderer,
-                    Text.translatable("cleanmcmod.screen.main.dry_run"), centerX, 30, Texts.COLOR_WARN);
+            graphics.centeredText(this.font,
+                    Component.translatable("cleanmcmod.screen.main.dry_run"), centerX, 30, Texts.COLOR_WARN);
         } else {
-            context.drawCenteredTextWithShadow(this.textRenderer,
-                    Text.translatable("cleanmcmod.screen.main.subtitle"), centerX, 30, Texts.COLOR_INFO);
+            graphics.centeredText(this.font,
+                    Component.translatable("cleanmcmod.screen.main.subtitle"), centerX, 30, Texts.COLOR_INFO);
         }
 
         CacheScan current = this.scan;
         int listTop = 52;
         int listBottom = this.height - 92;
         if (current == null || current.empty()) {
-            context.drawCenteredTextWithShadow(this.textRenderer,
-                    Text.translatable("cleanmcmod.screen.main.nothing_cached"), centerX, listTop + 6, Texts.COLOR_OK);
+            graphics.centeredText(this.font,
+                    Component.translatable("cleanmcmod.screen.main.nothing_cached"), centerX, listTop + 6, Texts.COLOR_OK);
         } else {
-            context.drawCenteredTextWithShadow(this.textRenderer,
-                    Text.translatable("cleanmcmod.screen.main.summary",
+            graphics.centeredText(this.font,
+                    Component.translatable("cleanmcmod.screen.main.summary",
                             current.presentCount(), Texts.bytes(current.bytes())),
                     centerX, 40, 0xFFFFFFFF);
-            renderTargets(context, current, listTop, listBottom);
+            renderTargets(graphics, current, listTop, listBottom);
         }
 
         if (service.isRunning()) {
-            context.drawCenteredTextWithShadow(this.textRenderer,
-                    Text.translatable("cleanmcmod.screen.main.running"), centerX, listBottom + 4, Texts.COLOR_WARN);
+            graphics.centeredText(this.font,
+                    Component.translatable("cleanmcmod.screen.main.running"), centerX, listBottom + 4, Texts.COLOR_WARN);
         } else {
-            context.drawCenteredTextWithShadow(this.textRenderer,
-                    Text.translatable("cleanmcmod.screen.main.hint"), centerX, listBottom + 4, Texts.COLOR_INFO);
+            graphics.centeredText(this.font,
+                    Component.translatable("cleanmcmod.screen.main.hint"), centerX, listBottom + 4, Texts.COLOR_INFO);
         }
     }
 
-    private void renderTargets(DrawContext context, CacheScan current, int listTop, int listBottom) {
+    private void renderTargets(GuiGraphicsExtractor graphics, CacheScan current, int listTop, int listBottom) {
         List<TargetState> present = current.presentTargets();
         int maxRows = Math.max(1, (listBottom - listTop) / 11);
         int left = this.width / 2 - 156;
@@ -113,17 +113,17 @@ public class CleanMenuScreen extends Screen {
             TargetResult result = findResult(state);
             int color = result == null ? 0xFFFFFFFF : Texts.statusColor(result);
 
-            Text name = Texts.targetName(state.target());
+            Component name = Texts.targetName(state.target());
             String measured = "%d · %s".formatted(state.files(), CleanReport.formatBytes(state.bytes()));
-            int measuredWidth = this.textRenderer.getWidth(measured);
+            int measuredWidth = this.font.width(measured);
 
-            context.drawText(this.textRenderer, name, left, y, color, false);
-            context.drawText(this.textRenderer, Text.literal(measured), right - measuredWidth, y, Texts.COLOR_INFO, false);
+            graphics.text(this.font, name, left, y, color, false);
+            graphics.text(this.font, Component.literal(measured), right - measuredWidth, y, Texts.COLOR_INFO, false);
 
             if (result != null) {
-                Text statusLine = Texts.status(result);
-                int statusWidth = this.textRenderer.getWidth(statusLine);
-                context.drawText(this.textRenderer, statusLine, right - measuredWidth - statusWidth - 8, y,
+                Component statusLine = Texts.status(result);
+                int statusWidth = this.font.width(statusLine);
+                graphics.text(this.font, statusLine, right - measuredWidth - statusWidth - 8, y,
                         Texts.statusColor(result), false);
             }
             y += 11;
@@ -131,7 +131,7 @@ public class CleanMenuScreen extends Screen {
 
         int hidden = present.size() - maxRows;
         if (hidden > 0) {
-            context.drawText(this.textRenderer, Text.translatable("cleanmcmod.screen.main.more", hidden),
+            graphics.text(this.font, Component.translatable("cleanmcmod.screen.main.more", hidden),
                     left, y, Texts.COLOR_INFO, false);
         }
     }
@@ -150,12 +150,12 @@ public class CleanMenuScreen extends Screen {
 
     /** Closing at the title screen would leave a black screen; go back to the title instead. */
     @Override
-    public void close() {
-        this.client.setScreen(this.client.world != null ? null : new TitleScreen());
+    public void onClose() {
+        this.minecraft.setScreenAndShow(this.minecraft.level != null ? null : new TitleScreen());
     }
 
     @Override
-    public boolean shouldPause() {
+    public boolean isPauseScreen() {
         return false;
     }
 }

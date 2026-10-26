@@ -10,11 +10,11 @@ import piboh.cleanmc.mod.clean.TargetResult;
 import piboh.cleanmc.mod.clean.TargetState;
 import piboh.cleanmc.mod.ui.CleanMenuScreen;
 import piboh.cleanmc.mod.ui.Texts;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,38 +32,38 @@ public final class CleanMcModCommand {
     }
 
     public static void register() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> register(dispatcher));
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) -> register(dispatcher));
     }
 
     private static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-        dispatcher.register(ClientCommandManager.literal("cleanmcmod")
+        dispatcher.register(ClientCommands.literal("cleanmcmod")
                 .executes(context -> help(context.getSource()))
-                .then(ClientCommandManager.literal("scan")
+                .then(ClientCommands.literal("scan")
                         .executes(context -> scan(context.getSource())))
-                .then(ClientCommandManager.literal("clean")
+                .then(ClientCommands.literal("clean")
                         .executes(context -> clean(context.getSource())))
-                .then(ClientCommandManager.literal("screen")
+                .then(ClientCommands.literal("screen")
                         .executes(context -> openScreen(context.getSource()))));
     }
 
     private static int help(FabricClientCommandSource source) {
-        source.sendFeedback(Text.translatable("cleanmcmod.command.help"));
+        source.sendFeedback(Component.translatable("cleanmcmod.command.help"));
         return 1;
     }
 
     private static int scan(FabricClientCommandSource source) {
         CleanMcModService service = CleanMcModClient.service();
         CacheScan scan = service.scan();
-        source.sendFeedback(Text.translatable("cleanmcmod.command.scan.header",
+        source.sendFeedback(Component.translatable("cleanmcmod.command.scan.header",
                 scan.presentCount(), scan.files(), CleanReport.formatBytes(scan.bytes())));
         if (scan.empty()) {
-            source.sendFeedback(Text.translatable("cleanmcmod.command.scan.empty"));
+            source.sendFeedback(Component.translatable("cleanmcmod.command.scan.empty"));
             return 1;
         }
         for (TargetState state : scan.presentTargets()) {
-            source.sendFeedback(Text.literal(" • ")
+            source.sendFeedback(Component.literal(" • ")
                     .append(Texts.targetName(state.target()))
-                    .append(Text.literal(" — " + state.files() + " · " + CleanReport.formatBytes(state.bytes()))));
+                    .append(Component.literal(" — " + state.files() + " · " + CleanReport.formatBytes(state.bytes()))));
         }
         return 1;
     }
@@ -71,11 +71,11 @@ public final class CleanMcModCommand {
     private static int clean(FabricClientCommandSource source) {
         CleanMcModService service = CleanMcModClient.service();
         if (service.isRunning()) {
-            source.sendFeedback(Text.translatable("cleanmcmod.command.running"));
+            source.sendFeedback(Component.translatable("cleanmcmod.command.running"));
             return 0;
         }
         boolean dryRun = service.config().dryRun;
-        source.sendFeedback(Text.translatable(dryRun
+        source.sendFeedback(Component.translatable(dryRun
                 ? "cleanmcmod.command.clean.started_dry"
                 : "cleanmcmod.command.clean.started"));
 
@@ -85,17 +85,17 @@ public final class CleanMcModCommand {
             targetsById.put(target.id(), target);
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         service.cleanAsync().thenAccept(report -> client.execute(() -> {
             if (report == null) {
-                source.sendFeedback(Text.translatable("cleanmcmod.command.clean.failed"));
+                source.sendFeedback(Component.translatable("cleanmcmod.command.clean.failed"));
                 return;
             }
             source.sendFeedback(report.dryRun()
-                    ? Text.translatable("cleanmcmod.command.clean.done_dry",
+                    ? Component.translatable("cleanmcmod.command.clean.done_dry",
                             report.cleanedTargets(), report.filesPlanned(),
                             CleanReport.formatBytes(report.bytesPlanned()))
-                    : Text.translatable("cleanmcmod.command.clean.done",
+                    : Component.translatable("cleanmcmod.command.clean.done",
                             report.cleanedTargets(), report.filesDeleted(),
                             CleanReport.formatBytes(report.bytesFreed())));
             for (TargetResult result : report.results()) {
@@ -103,11 +103,11 @@ public final class CleanMcModCommand {
                     continue;
                 }
                 CacheTarget target = targetsById.get(result.targetId());
-                Text name = target != null ? Texts.targetName(target) : Text.literal(result.targetId());
+                Component name = target != null ? Texts.targetName(target) : Component.literal(result.targetId());
                 TargetResult.Counts counts = report.dryRun() ? result.planned() : result.deleted();
-                source.sendFeedback(Text.literal(" • ")
+                source.sendFeedback(Component.literal(" • ")
                         .append(name)
-                        .append(Text.literal(" — " + counts.files() + " · "
+                        .append(Component.literal(" — " + counts.files() + " · "
                                 + CleanReport.formatBytes(counts.bytes()))));
             }
         }));
@@ -115,7 +115,7 @@ public final class CleanMcModCommand {
     }
 
     private static int openScreen(FabricClientCommandSource source) {
-        MinecraftClient.getInstance().setScreen(
+        Minecraft.getInstance().setScreenAndShow(
                 new CleanMenuScreen(CleanMcModClient.service(), CleanMcModClient.updater()));
         return 1;
     }

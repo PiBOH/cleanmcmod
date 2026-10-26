@@ -56,24 +56,28 @@ each leaves `mods/` exactly as it was and shows one readable message.
 
 ## Supported versions
 
-One source tree covers **1.21.8, 1.21.9, 1.21.10 and 1.21.11**. Pass
-`-Pmc=<version>` and the matching Yarn, Fabric API and Java level are selected
-from the support matrix in `build.gradle`; all four compile and are tested in
-CI, one workflow per version.
+This branch is the **Minecraft 26.1, 26.2 and 26.3** line. Those releases ship
+unobfuscated, so there are no Yarn mappings and no remap step: the mod is built
+with Loom's non-remapping plugin against the official class names and needs
+**Java 25**.
+
+One source tree covers all three. Pass `-Pmc=<version>` and the matching Fabric
+API and Mod Menu builds are selected from the support matrix in `build.gradle`;
+all three compile and are tested in CI, one workflow per version.
 
 ```bash
-./gradlew clean build -Pmc=1.21.11   # build/libs/cleanmcmod-<version>+1.21.11.jar
+./gradlew clean build -Pmc=26.1   # build/libs/cleanmcmod-<version>+26.1.jar
 ```
 
-26.1 / 26.2 / 26.3 are not supported yet: no Yarn mappings exist for them and
-those releases ship unobfuscated, which needs a newer Loom line and a renamed
-source tree.
+The 1.21.8 – 1.21.11 line (Yarn mappings, Java 21, remapping Loom) lives on
+`main`; this line keeps one branch per game version, each pinning its own
+default target in `gradle.properties`.
 
 ## Optional Mod Menu
 
 If [Mod Menu](https://modrinth.com/mod/modmenu) is installed, CleanMCMod
 appears in its list and its **Config** button opens the settings screen. Mod
-Menu is compiled against with `modCompileOnly` and declared as `suggests`, never
+Menu is compiled against with `compileOnly` and declared as `suggests`, never
 `depends`: without it the game boots normally and no Mod Menu class is loaded.
 
 ## Languages
@@ -85,17 +89,13 @@ same key set as `en_us.json`; `AGENTS.md` §6 has the parity check.
 
 ## Building from source
 
-The wrapper is checked in, so no Gradle installation is required. Two JDKs are
-needed: Java 25 runs Gradle and Loom (Loom 1.19.3 refuses to run on 21), and a
-Java 21 must also be installed because the build pins a Java 21 toolchain.
+The wrapper is checked in, so no Gradle installation is required. Minecraft 26.x
+needs one JDK: **Java 25** runs Gradle, Loom and the compile step.
 
 ```bash
 export JAVA_HOME=/path/to/jdk-25
-./gradlew clean build              # 50 unit tests + jar in build/libs/
+./gradlew clean build              # 73 unit tests + jar in build/libs/
 ./gradlew runClient                # dev client, game directory ./run
-
-# if Gradle cannot find the Java 21 toolchain:
-./gradlew clean build -Porg.gradle.java.installations.paths=/path/to/jdk-21
 ```
 
 The version comes from `version.txt` (single source of truth); the artifact is
