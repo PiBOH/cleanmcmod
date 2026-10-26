@@ -61,7 +61,7 @@ dependencies {
 
 // The click and key-binding APIs changed in 1.21.9, so the handful of files that
 // touch them come from a per-API source directory instead of src/main/java.
-def compatDir = (cli['mc'] ?: '1.21.8') == '1.21.8' ? 'src/compat/1.21.8/java' : 'src/compat/1.21.9/java'
+def compatDir = mcVersion == '1.21.8' ? 'src/compat/1.21.8/java' : 'src/compat/1.21.9/java'
 sourceSets.main.java.srcDir compatDir
 
 java {
