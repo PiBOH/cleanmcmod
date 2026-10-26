@@ -197,6 +197,9 @@ Refactors happen only when a behaviour must change anyway.
 - No mod hiding, no anti-cheat evasion, no server resource-pack bypass.
 - No Quilt-specific testing (the code is Fabric only; Quilt compatibility is
   unproven).
+- Only the latest target (26.3) is tested in game. Every other version branch is
+  provided **as is**: it compiles and its unit tests pass, and nothing more is
+  promised for it.
 - No 26.x builds on this branch: those targets are unobfuscated, need Java 25
   and live on the `26.1` / `26.2` / `26.3` branches.
 - No `/cleanmcmod` verification inside a loaded world (the command is exercised
