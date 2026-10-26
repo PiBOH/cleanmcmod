@@ -113,6 +113,12 @@ evasion, and no pretending that a server resource pack was accepted. Those
 break the Modrinth content rules and server terms of service, so they are
 deliberately absent and will stay absent.
 
+## Tested configuration
+
+The author tests only the **latest** Minecraft version (26.3 at the time of
+writing). The other branches are provided **as is**: they compile and their
+unit tests pass, but no in-game guarantee is made for them.
+
 ## Publishing a release
 
 Each branch builds one Minecraft version: `./gradlew clean build` in a branch
