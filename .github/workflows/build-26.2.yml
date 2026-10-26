@@ -30,7 +30,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build and test 26.3
+      - name: Build and test 26.2
         run: ./gradlew clean build --no-daemon --stacktrace -Pmc=26.2
 
       - uses: actions/upload-artifact@v4
