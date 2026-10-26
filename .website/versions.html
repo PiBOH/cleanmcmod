@@ -56,10 +56,10 @@
     <table class="catalog-table">
       <caption>Branches and artifacts</caption>
       <tr><th>Branch</th><th>Minecraft</th><th>Java</th><th>Mappings</th><th>Artifact</th></tr>
-      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.8">1.21.8</a></td><td>1.21.8</td><td>21</td><td>Yarn 1.21.8+build.1</td><td><code>cleanmcmod-0.1.0+1.21.8.jar</code></td></tr>
-      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.9">1.21.9</a></td><td>1.21.9</td><td>21</td><td>Yarn 1.21.9+build.1</td><td><code>cleanmcmod-0.1.0+1.21.9.jar</code></td></tr>
-      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.10">1.21.10</a></td><td>1.21.10</td><td>21</td><td>Yarn 1.21.10+build.3</td><td><code>cleanmcmod-0.1.0+1.21.10.jar</code></td></tr>
-      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.11">1.21.11</a></td><td>1.21.11</td><td>21</td><td>Yarn 1.21.11+build.6</td><td><code>cleanmcmod-0.1.0+1.21.11.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.8">1.21.8</a></td><td>1.21.8</td><td>21</td><td>Yarn 1.21.8+build.1</td><td><code>cleanmcmod-0.2.0+1.21.8.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.9">1.21.9</a></td><td>1.21.9</td><td>21</td><td>Yarn 1.21.9+build.1</td><td><code>cleanmcmod-0.2.0+1.21.9.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.10">1.21.10</a></td><td>1.21.10</td><td>21</td><td>Yarn 1.21.10+build.3</td><td><code>cleanmcmod-0.2.0+1.21.10.jar</code></td></tr>
+      <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/1.21.11">1.21.11</a></td><td>1.21.11</td><td>21</td><td>Yarn 1.21.11+build.6</td><td><code>cleanmcmod-0.2.0+1.21.11.jar</code></td></tr>
       <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/26.1">26.1</a></td><td>26.1</td><td>25</td><td>unobfuscated</td><td><code>cleanmcmod-0.2.0+26.1.jar</code></td></tr>
       <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/26.2">26.2</a></td><td>26.2</td><td>25</td><td>unobfuscated</td><td><code>cleanmcmod-0.2.0+26.2.jar</code></td></tr>
       <tr><td><a href="https://github.com/PiBOH/cleanmcmod/tree/26.3">26.3</a></td><td>26.3</td><td>25</td><td>unobfuscated</td><td><code>cleanmcmod-0.2.0+26.3.jar</code></td></tr>
@@ -81,6 +81,8 @@
       <li>Each branch builds exactly one jar: <code>./gradlew clean build</code> in the branch, artifact in <code>build/libs/</code>.</li>
       <li>That jar is the file published on Modrinth for its game version (loader: Fabric, environment: client).</li>
       <li>CI builds and tests every branch on each push; the workflows are <code>build-&lt;version&gt;.yml</code>.</li>
+      <li>Every GitHub release carries <strong>all seven jars</strong>, built from the version branches by the release workflow.</li>
+      <li>Only the latest version (26.3) is tested in game; the others are provided <em>as is</em>.</li>
       <li>The project icon is <code>logo.png</code> at the repository root, with a 64 pixel variant in <code>logo-64.png</code>.</li>
       <li>Mod Menu is optional on every branch: the jar only <em>suggests</em> it.</li>
     </ul>

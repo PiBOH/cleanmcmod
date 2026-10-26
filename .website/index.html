@@ -64,6 +64,7 @@
       <p class="lead">One screen that deletes the caches which make Minecraft render wrong, and keeps your mods up to date.</p>
       <p>Stale caches are the usual cause of purple-and-black missing models, textures that never refresh and resource packs that stay half broken. CleanMCMod measures every cache first, shows what it is about to remove, and only deletes inside the folders the game itself regenerates. It can also read <code>mods/</code>, ask Modrinth for newer builds matching your game version and loader, and install them after you confirm.</p>
       <div class="notice"><strong>Nothing happens by accident:</strong> a clean runs with a dry run on request, directories are never removed themselves, symlinks are never followed, and <code>saves/</code>, <code>mods/*.jar</code>, <code>resourcepacks/</code>, <code>shaderpacks/</code>, <code>screenshots/</code> and top-level <code>config/*.json</code> are never touched.</div>
+      <div class="notice warning"><strong>Tested configuration:</strong> the author tests only the latest Minecraft version (26.3 at the time of writing). Every other branch is provided <em>as is</em>: it compiles and its unit tests pass, but no in-game guarantee is made for it.</div>
       <div class="quick-links">
         <a href="install.html">Install and open the menu</a>
         <a href="versions.html">Supported versions</a>
