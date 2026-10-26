@@ -15,11 +15,11 @@ installs newer versions from the Modrinth API.
 - **Loader**: Fabric Loader. The jar is built against `piboh.cleanmc.mod` and
   declares `environment: client` — it never runs on a dedicated server.
 - **Targets**: Minecraft 1.21.8, 1.21.9, 1.21.10 and 1.21.11 (Java 21) — all
-  four compile, each with its own CI workflow. 26.1 / 26.2 / 26.3 are **not**
-  supported yet: Fabric publishes no Yarn mappings for 26.x and the game ships
-  unobfuscated, so it needs the `1.19-SNAPSHOT` Loom line and a rename of every
-  Minecraft-facing class. The version is a build dimension (`-Pmc=`), not a
-  branch of code.
+  four compile, each with its own CI workflow. 26.1 / 26.2 / 26.3 ship
+  **unobfuscated**: no Yarn mappings exist for them, so they need Loom's
+  non-remapping plugin, the official class names and Java 25 and live on the
+  `26.1` / `26.2` / `26.3` branches instead of this tree. Here the version is a
+  build dimension (`-Pmc=`), not a branch of code.
 - **Version**: `version.txt` at the repo root is the single source of truth.
   `build.gradle` reads it; `fabric.mod.json` is expanded from it. Never
   hard-code a version in Java or in the JSON.
@@ -197,9 +197,8 @@ Refactors happen only when a behaviour must change anyway.
 - No mod hiding, no anti-cheat evasion, no server resource-pack bypass.
 - No Quilt-specific testing (the code is Fabric only; Quilt compatibility is
   unproven).
-- No builds for 26.1/26.2/26.3: the mapping artifact does not exist for those
-  versions (Yarn stops at 1.21.11) and the mapping-less build Loom needs is a
-  SNAPSHOT, so those targets have no workflow.
+- No 26.x builds on this branch: those targets are unobfuscated, need Java 25
+  and live on the `26.1` / `26.2` / `26.3` branches.
 - No `/cleanmcmod` verification inside a loaded world (the command is exercised
   through the same service as the GUI button).
 - No published release; CI only compiles and tests (`./gradlew build`), it

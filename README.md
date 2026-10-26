@@ -65,9 +65,10 @@ CI, one workflow per version.
 ./gradlew clean build -Pmc=1.21.11   # build/libs/cleanmcmod-<version>+1.21.11.jar
 ```
 
-26.1 / 26.2 / 26.3 are not supported yet: no Yarn mappings exist for them and
-those releases ship unobfuscated, which needs a newer Loom line and a renamed
-source tree.
+26.1 / 26.2 / 26.3 are supported from their own branches, `26.1`, `26.2` and
+`26.3`: those releases ship unobfuscated, with no Yarn mappings, so they build
+with Loom's non-remapping plugin against the official class names on Java 25
+and cannot share this Yarn/JDK 21 tree.
 
 ## Optional Mod Menu
 
