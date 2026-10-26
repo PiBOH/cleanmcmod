@@ -1,4 +1,4 @@
-name: Build 26.3
+name: Build 26.2
 
 # One workflow per Minecraft target. The source tree is shared and build.gradle
 # picks the Fabric API and Mod Menu builds with -Pmc; every row in that file has
@@ -6,12 +6,12 @@ name: Build 26.3
 # needs JDK 25 only: same JVM for Gradle, Loom and the Java 25 release level.
 on:
   push:
-    branches: ['26.3']
+    branches: ['26.2']
   pull_request:
   workflow_dispatch:
 
 concurrency:
-  group: ci-26.3-${{ github.ref }}
+  group: ci-26.2-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -31,11 +31,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build and test 26.3
-        run: ./gradlew clean build --no-daemon --stacktrace -Pmc=26.3
+        run: ./gradlew clean build --no-daemon --stacktrace -Pmc=26.2
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cleanmcmod-26.3
+          name: cleanmcmod-26.2
           path: build/libs/cleanmcmod-*.jar
           if-no-files-found: error
 
@@ -43,6 +43,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-26.3
+          name: test-results-26.2
           path: build/reports/tests/test
           if-no-files-found: ignore
