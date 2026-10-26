@@ -1,7 +1,7 @@
 # CleanMCMod
 
 <p align="center">
-  <img src="src/main/resources/assets/cleanmcmod/icon.png" alt="CleanMCMod" width="180">
+  <img src="logo.png" alt="CleanMCMod" width="180">
 </p>
 
 Client-side cache cleaner for Minecraft, the mods you have installed and the
@@ -118,7 +118,8 @@ Each branch builds one Minecraft version: `./gradlew clean build` in a branch
 produces `build/libs/cleanmcmod-<mod version>+<minecraft version>.jar`, which is
 the file uploaded to [Modrinth](https://modrinth.com/mod/cleanmcmod) for that
 game version (loader: Fabric, environment: client). The listing icon is
-`src/main/resources/assets/cleanmcmod/icon.png`, the framed logo.
+`logo.png` at the repository root; the jar ships the same artwork as
+`assets/cleanmcmod/icon.png`.
 
 ## License
 
