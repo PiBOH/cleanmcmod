@@ -86,4 +86,13 @@ public class UpdateResultScreen extends Screen {
     public boolean isPauseScreen() {
         return false;
     }
+    /** Skips the game's full-screen blur: see {@link ScreenBackdrop}. */
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        if (this.minecraft != null && this.minecraft.level == null) {
+            this.extractMenuBackground(graphics);
+        }
+        this.extractTransparentBackground(graphics);
+    }
+
 }
