@@ -56,7 +56,7 @@ public final class ModIcons {
                 NativeImage image = NativeImage.read(in);
                 Identifier id = Identifier.fromNamespaceAndPath("cleanmcmod", "mod_icon/" + slug(mod, entry.getName()));
                 Minecraft.getInstance().getTextureManager()
-                        .register(id, new DynamicTexture(() -> "cleanmcmod mod icon", image));
+                        .register(id, new DynamicTexture(() -> "cleanmcmod mod icon", shrink(image)));
                 return id;
             }
         } catch (Exception exception) {
@@ -68,6 +68,27 @@ public final class ModIcons {
     }
 
     /** {@code assets/<modid>/icon.png} first, then the shortest {@code icon.png} the jar carries. */
+    /**
+     * The icon at the size a row draws it. Mod icons are 64 to 512 pixels wide, and a texture drawn
+     * with a 16 pixel size samples its top left corner only, which is why every row looked blank.
+     */
+    private static NativeImage shrink(NativeImage source) {
+        int size = 16;
+        if (source.getWidth() == size && source.getHeight() == size) {
+            return source;
+        }
+        NativeImage target = new NativeImage(size, size, false);
+        for (int y = 0; y < size; y++) {
+            int sourceY = Math.min(source.getHeight() - 1, y * source.getHeight() / size);
+            for (int x = 0; x < size; x++) {
+                int sourceX = Math.min(source.getWidth() - 1, x * source.getWidth() / size);
+                target.setPixel(x, y, source.getPixel(sourceX, sourceY));
+            }
+        }
+        source.close();
+        return target;
+    }
+
     private static ZipEntry findIcon(ZipFile zip, String modId) {
         if (modId != null && !modId.isBlank()) {
             ZipEntry exact = zip.getEntry("assets/" + modId + "/icon.png");
