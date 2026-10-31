@@ -18,6 +18,7 @@ import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
+import piboh.cleanmc.mod.update.PendingRemovals;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -68,7 +69,11 @@ public final class CleanMcModClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         Path gameDir = FabricLoader.getInstance().getGameDir();
-        service = new CleanMcModService(gameDir, FabricLoader.getInstance().getConfigDir());
+        Path configDir = FabricLoader.getInstance().getConfigDir();
+        // The jars an update replaced are moved out of mods/ here: they were open for the whole
+        // previous session, so the install could not delete them while the game was running.
+        PendingRemovals.run(configDir);
+        service = new CleanMcModService(gameDir, configDir);
 
         String gameVersion = FabricLoader.getInstance().getModContainer("minecraft")
                 .map(container -> container.getMetadata().getVersion().getFriendlyString())

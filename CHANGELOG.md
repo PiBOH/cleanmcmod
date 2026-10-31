@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `version.txt` is the single source of
 truth for the version; a new `## [x.y.z]` section is written in the same commit that bumps it.
 
+## [0.3.4] - 2026-10-31
+
+### Fixed
+
+- **Updates now install while the game is running.** Minecraft keeps every jar in `mods/` open, so
+  Windows refuses to replace one: the new build is written under its own file name and the jar it
+  replaces is removed on the next launch, or deleted at once when Windows lets go of it. Nothing is
+  ever written over a jar the game has open, which is the method Mod Menu Updater uses.
+- **The list no longer offers a build that is already installed.** Two sources spell the same
+  version their own way (`3.0.10+mc26.3` and `26.3-3.0.10`), and those rows tried to replace the open
+  jar and failed. In the reported pack five of fourteen rows were of that kind.
+- **A mod icon is also read from a root `icon.png`**, which CurseForge mods often ship, and a jar
+  whose icon cannot be decoded now says why in the log instead of dropping to the initial tile
+  silently.
+
 ## [0.3.3] - 2026-10-31
 
 ### Fixed

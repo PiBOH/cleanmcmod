@@ -1,5 +1,7 @@
 package piboh.cleanmc.mod.update;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -39,6 +41,37 @@ public final class VersionComparator {
         return 0;
     }
 
+    /**
+     * True when two spellings name the same build: the same file published as {@code 3.0.10+mc26.3}
+     * on one source and {@code 26.3-3.0.10} on another. The build metadata, the running game version
+     * and the loader name are removed before comparing, so a source that renames a version is not
+     * mistaken for a newer one. Offering such a row means asking the installer to replace the jar the
+     * game has open, which Windows refuses.
+     */
+    public static boolean sameBuild(String left, String right, String gameVersion) {
+        return compare(core(left, gameVersion), core(right, gameVersion)) == 0;
+    }
+
+    /** The version without build metadata, game version and loader tokens. */
+    static String core(String version, String gameVersion) {
+        if (version == null) {
+            return "";
+        }
+        String cleaned = version.trim().toLowerCase(Locale.ROOT);
+        int buildMetadata = cleaned.indexOf('+');
+        if (buildMetadata >= 0) {
+            cleaned = cleaned.substring(0, buildMetadata);
+        }
+        for (String loader : List.of("neoforge", "fabric", "quilt", "forge")) {
+            cleaned = cleaned.replace(loader, "-");
+        }
+        if (gameVersion != null && !gameVersion.isBlank()) {
+            String game = gameVersion.trim().toLowerCase(Locale.ROOT);
+            cleaned = cleaned.replace("mc" + game, "-").replace(game, "-");
+        }
+        return cleaned;
+    }
+
     private static String[] tokens(String version) {
         if (version == null) {
             return new String[0];
@@ -51,7 +84,14 @@ public final class VersionComparator {
         if (cleaned.startsWith("v") && cleaned.length() > 1 && Character.isDigit(cleaned.charAt(1))) {
             cleaned = cleaned.substring(1);
         }
-        return cleaned.isEmpty() ? new String[0] : cleaned.split("[^a-z0-9]+");
+        if (cleaned.isEmpty()) {
+            return new String[0];
+        }
+        // A leading separator (the game version stripped from 26.3-3.0.10 leaves one) must not
+        // become an empty token, which would compare as a word against the first number.
+        return Arrays.stream(cleaned.split("[^a-z0-9]+"))
+                .filter(token -> !token.isEmpty())
+                .toArray(String[]::new);
     }
 
     private static int compareNumeric(String left, String right) {
