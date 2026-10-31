@@ -6,6 +6,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `version.txt` is the single source of
 truth for the version; a new `## [x.y.z]` section is written in the same commit that bumps it.
 
+## [0.3.1] - 2026-10-31
+
+### Added
+
+- **About group in the settings.** It names the creator, PiBOH, and the mods this one took its layout
+  and its update list from: ModMenuUpdater, Sodium and Reese's Sodium Options.
+- **Language row in the settings.** It shows the current language and opens the game's own language
+  selector, so the language can be changed without leaving the mod.
+- **Update list as a table.** Icon, mod name, installed version, new version and a checkbox on every
+  row; a click on a row ticks its box, and a single row can be downloaded on its own.
+- **Progress bar with a percentage** while updates are checked and downloaded, driven by the steps the
+  updater has really finished, never by a timer.
+- **Result alert when a download finishes.** One line per mod saying whether it was updated and to
+  which version, instead of leaving the answer in the log.
+- Mod Menu's button now opens the main screen, so `Update mods...` is one click from Mod Menu.
+
+### Changed
+
+- **Settings laid out like Sodium.** One scrolling page with a search field, a header per group and
+  the control on the right. The side column of categories is gone, so nothing next to the list can be
+  left unclickable.
+- The bulk action is called **Download selected** and **Download all** instead of `Install all`.
+- Sources are preferred in the order Modrinth, GitHub, CurseForge, and the source tag is coloured:
+  Modrinth green, GitHub dark violet, CurseForge orange.
+- No long dash in any shipped string.
+
+### Fixed
+
+- Two builds of the same mod no longer produce two rows: the newest one is shown, and updating the
+  older copy is no longer offered.
+- A row in the update list responds to a click again, including when two rows pointed at the same
+  project.
+
 ## [0.3.0] - 2026-10-31
 
 ### Added

@@ -77,9 +77,10 @@ and cannot share this Yarn/JDK 21 tree.
 ## Optional Mod Menu
 
 If [Mod Menu](https://modrinth.com/mod/modmenu) is installed, CleanMCMod
-appears in its list and its **Config** button opens the settings screen. Mod
-Menu is compiled against with `modCompileOnly` and declared as `suggests`, never
-`depends`: without it the game boots normally and no Mod Menu class is loaded.
+appears in its list and its button opens the main CleanMCMod screen, where
+**Update mods...** is one click away. Mod Menu is compiled against with
+`modCompileOnly` and declared as `suggests`, never `depends`: without it the
+game boots normally and no Mod Menu class is loaded.
 
 ## Languages
 
@@ -127,6 +128,22 @@ the file uploaded to [Modrinth](https://modrinth.com/mod/cleanmcmod) for that
 game version (loader: Fabric, environment: client). The listing icon is
 `logo.png` at the repository root; the jar ships the same artwork as
 `assets/cleanmcmod/icon.png`.
+
+## Credits
+
+CleanMCMod is made by **PiBOH**.
+
+Its update list started from
+[ModMenuUpdater](https://github.com/UDPSendToFailed/ModMenuUpdater) by
+UDPSendToFailed, and its settings use the layout of
+[Sodium](https://modrinth.com/mod/sodium) and
+[Reese's Sodium Options](https://modrinth.com/mod/reeses-sodium-options).
+
+Other Minecraft mods by the same author:
+[Jarock](https://modrinth.com/mod/jarock) and
+[DedicatedPower](https://modrinth.com/mod/dedicatedpower), which PiBOH
+maintains and whose original author is
+[Server OS](https://modrinth.com/mod/server-os).
 
 ## License
 
