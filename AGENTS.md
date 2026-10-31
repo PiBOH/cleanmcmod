@@ -6,10 +6,12 @@ Instructions for AI coding agents working in this repository.
 
 **CleanMCMod** is a **client-only** Minecraft mod that clears the caches which
 make the game render wrong: stale `logs/`, crash reports, debug dumps, the
-server resource-pack cache, Fabric's remapped-jar cache, Mixin debug output and
-the asset cache, plus the per-mod cache folders that mods create under
-`config/<mod>/`. It also lists the mods installed in `mods/` and, on request,
-installs newer versions from the Modrinth API.
+server resource-pack cache, Fabric's remapped-jar cache, Mixin debug output,
+the asset cache, the per-mod cache folders that mods create under
+`config/<mod>/`, and the map-render caches of VoxelMap and Xaero's Minimap /
+World Map (the stale sprites that make mobs draw wrong). It also lists the mods
+installed in `mods/` and, on request, installs newer versions from **Modrinth**,
+**CurseForge** or **GitHub**.
 
 - **Language/build**: Java 21 source/target, Gradle (Fabric Loom 1.19.3).
 - **Loader**: Fabric Loader. The jar is built against `piboh.cleanmc.mod` and
@@ -26,17 +28,17 @@ installs newer versions from the Modrinth API.
 
 ## 2. Architecture and package structure
 
-Root package `piboh.cleanmc.mod`, four concerns, one owner of state each:
+Root package `piboh.cleanmc.mod`, five concerns, one owner of state each:
 
 | Package | Files | Role |
 |---|---|---|
-| `clean` | `CacheTargets`, `CacheTarget`, `CacheCategory`, `CacheSafety`, `CacheScanner`, `CacheScan`, `TargetState`, `CacheAutoDetector`, `CacheCleaner`, `CleanReport`, `TargetResult`, `TargetStatus` | Pure filesystem work: what counts as a cache, how it is measured, how it is deleted. No Minecraft classes. |
-| `config` | `CleanMcModConfig` | The eight settings + `extraPaths`, stored as `config/cleanmcmod.json`. Gson, saved on every toggle. |
-| `update` | `ModScanner`, `LocalMod`, `ModVersion`, `Dependency`, `ModrinthClient`, `Updates`, `ModUpdate`, `Compatibility`, `VersionRange`, `ModUpdaterService`, `ModInstaller`, `VersionComparator` | Installed-mod scan, Modrinth queries, the update decision, the dependency pre-flight (`Compatibility`/`VersionRange`: install, warn or block with a reason, plus the plan that fetches the missing required dependencies one level deep), the download/verify/replace step. |
-| `ui` | `CleanMenuScreen`, `CacheSettingsScreen`, `ModUpdatesScreen`, `AbstractUpdatesScreen`, `ConfirmInstallScreen`, `Texts`, `MenuKey` | Rendering and input only. Screens read state, call a service, draw the result. `ModUpdatesScreen` and `MenuKey` are two-file shims under `src/compat/<api>/` because the click and key-binding signatures changed in 1.21.9; everything else lives in `src/main/java`. |
+| `clean` | `CacheTargets`, `CacheTarget`, `CacheCategory`, `CacheSafety`, `CacheScanner`, `CacheScan`, `TargetState`, `CacheAutoDetector`, `MapCaches`, `CacheCleaner`, `CleanReport`, `TargetResult`, `TargetStatus` | Pure filesystem work: what counts as a cache, how it is measured, how it is deleted. No Minecraft classes. |
+| `config` | `CleanMcModConfig` | The nine settings + `extraPaths`, stored as `config/cleanmcmod.json`. Gson, saved on every toggle. |
+| `update` | `ModScanner`, `LocalMod`, `ModVersion`, `ModSource`, `Dependency`, `ModrinthClient`, `CurseForgeClient`, `GithubClient`, `UpdateSources`, `ArtifactNames`, `Updates`, `ModUpdate`, `Compatibility`, `VersionRange`, `ModUpdaterService`, `ModInstaller`, `VersionComparator` | Installed-mod scan, the three sources, the merge, the update decision, the dependency pre-flight (`Compatibility`/`VersionRange`: install, warn or block with a reason, plus the plan that fetches the missing required dependencies one level deep), the download/verify/replace step. |
+| `ui` | `CleanMenuScreen`, `CacheSettingsScreen`, `ModUpdatesScreen`, `AbstractUpdatesScreen`, `ConfirmInstallScreen`, `Texts`, `MenuKey` | Rendering and input only. Screens read state, call a service, draw the result. `ModUpdatesScreen` and `MenuKey` are two-file shims under `src/compat/<api>/` because the click, key and key-binding signatures changed in 1.21.9; everything else lives in `src/main/java`. |
 | `command` | `CleanMcModCommand` | `/cleanmcmod scan|clean|screen` through Fabric's client command API. |
 | `compat` | `CleanMcModMenu` | Optional Mod Menu integration, named only by the `modmenu` entrypoint. Compiled against `modmenu` with `modCompileOnly`, so a game without Mod Menu never loads it; `modmenu` is `suggests`, never `depends`. |
-| root | `CleanMcMod`, `CleanMcModClient` | Mod initializer + static service accessors. |
+| root | `CleanMcMod`, `CleanMcModClient` | Mod initializer, key bindings, source wiring and static service accessors. |
 
 Rules of ownership:
 
@@ -46,11 +48,14 @@ Rules of ownership:
   (`IDLE`/`CHECKING`/`READY`/`INSTALLING`/`FAILED`, updates, outcomes, error).
   Screens must never mutate it; they call `checkAsync()` / `installAsync()` and
   read `snapshot()`.
+- `UpdateSources` owns the merge across sources; each `*Client` owns exactly one
+  protocol. A source never knows about another source.
 - Config is one object, loaded once and saved through `CleanMcModService`.
   Do not add a second settings store, a second JSON file, or per-screen fields
   that shadow a setting.
 - `Texts` is the only place that maps a `TargetResult` to a colour or a status
-  label. Do not inline new colours in a screen.
+  label, and a `ModSource` to its label. Do not inline new colours or source
+  names in a screen.
 
 ## 3. Code conventions
 
@@ -67,18 +72,27 @@ Rules of ownership:
   goes through `Text.translatable(...)` and exists in **every** file under
   `src/main/resources/assets/cleanmcmod/lang/`. See §6.
 - **Cache cleaning must stay conservative.** Only delete inside the paths
-  produced by `CacheTargets`/`CacheAutoDetector`; never delete a directory, only
-  its files; never follow symlinks; never touch `saves/`, `mods/*.jar`,
-  `resourcepacks/`, `shaderpacks/`, `screenshots/` or `config/*.json` at the
-  top level. `CacheSafety` documents which targets the game regenerates and
-  which are re-downloaded.
+  produced by `CacheTargets`/`CacheAutoDetector`/`MapCaches`; never delete a
+  directory, only its files; never follow symlinks; never touch `saves/`,
+  `mods/*.jar`, `resourcepacks/`, `shaderpacks/`, `screenshots/` or
+  `config/*.json` at the top level. `CacheSafety` documents which targets the
+  game regenerates and which are re-downloaded.
+- **Map caches: caches only.** `MapCaches` may only offer folders named
+  `cache`/`caches`/`*cache` inside a known map-mod root
+  (`voxelmap/`, `xaero/`, `config/xaero/`, `XaeroWaypoints/`, `XaeroWorldMap/`,
+  `XaeroMinimap/`). Waypoints, `*.points` files, map region data and settings
+  are the player's work and are never offered. A new map mod means a new root
+  in that list and a test in `MapCachesTest`, nothing else.
 - **Dry run means dry.** `CleanReport.filesDeleted()`/`bytesFreed()` must be 0
   in a dry run; `filesPlanned()`/`bytesPlanned()` carry the would-be numbers.
   Do not "fix" a total by relabelling it.
 - **The updater must never destroy a working mod.** Download to a temp file,
-  verify the SHA-1 Modrinth publishes, move the old jar aside, move the new one
-  in, and restore the old one on any failure. Never delete the only working
-  copy before the replacement is fully written.
+  verify the hash when the source publishes one, move the old jar aside, move
+  the new one in, and restore the old one on any failure. Never delete the only
+  working copy before the replacement is fully written.
+- **Never claim a verification that did not happen.** Only Modrinth publishes a
+  SHA-1 per file. CurseForge and GitHub files are installed unverified and the
+  log says so; do not print "verified" for them and do not invent a hash.
 - **A missing required dependency is fetched, not just reported.** A dependency that
   is absent, or installed at a different build than the candidate pins, counts as
   missing: `ModUpdaterService` resolves it from Modrinth for the running game version
@@ -89,6 +103,10 @@ Rules of ownership:
   `mods/`. If one cannot be resolved, the update stays blocked with the original
   reason and nothing is downloaded or modified.
 - **No self-update.** CleanMCMod never replaces its own jar while it is loaded.
+- **Mod Menu Updater wins when present.** If a mod whose id normalises to
+  `modmenuupdater` is installed, `ModUpdaterService.installAsync` must refuse and
+  the update screen must hand over instead of duplicating the work. Never remove
+  that check to "fix" a dead install button.
 - Keep changes small and in the existing structure; no new dependency for a
   few lines; no abstraction, option or "for later" code nobody asked for.
 
@@ -108,14 +126,19 @@ export JAVA_HOME=/path/to/jdk-25
 ./gradlew test             # JUnit only
 ./gradlew runClient        # dev client, game dir ./run
 
+# every target, one command each
+for v in 1.21.8 1.21.9 1.21.10 1.21.11; do ./gradlew build -Pmc=$v || break; done
+
 # only if the Java 21 toolchain is not auto-detected:
 ./gradlew clean build -Porg.gradle.java.installations.paths=/path/to/jdk-21
 ```
 
-- The test suite must stay green (`50` tests at the time of writing). Tests are
-  plain JUnit 5 and cover the pure logic: cache cleaning, auto-detection
-  depth, config round-trip, version comparison, update selection, Modrinth
-  payload parsing, installer safety, updater state transitions.
+- The test suite must stay green (`67` tests at the time of writing). Tests are
+  plain JUnit 5 and cover the pure logic: cache cleaning, auto-detection depth,
+  map-cache discovery, config round-trip, version comparison, update selection,
+  the multi-source merge, Modrinth / CurseForge / GitHub payload parsing,
+  installer safety (including a jar from a source without a checksum), updater
+  state transitions.
 - A green `build` is not proof of UI correctness: screens are only proven by
   running the client (see `run/screenshots/`, F2) or by the layout being read
   against `TextRenderer` widths.
@@ -153,6 +176,9 @@ Refactors happen only when a behaviour must change anyway.
   `es-rUS`→`es_mx`, `en-rCA`→`en_ca`, `fil`→`fil_ph`. Android qualifiers with
   no Minecraft equivalent (`as`, `bn`, `bn-rIN`, `km`, `ml`, `mte`, `pa`,
   `te`, `wae`) cannot be shipped: the game would never load them.
+- New keys are added to every file in the same commit. `scripts/update_lang.py`
+  holds the 0.3.0 key set and can be re-run; it is a helper, not a generator —
+  translate by hand when a key is new.
 - Parity check (run before every commit that touches a lang file):
 
   ```bash
@@ -169,17 +195,88 @@ Refactors happen only when a behaviour must change anyway.
   ```
 
 - Keep `%s` placeholders and the `✔`/`✘` markers; translate the words around
-  them. Do not translate mod names, `/cleanmcmod` or the key `F7`.
+  them. Do not translate mod names, `/cleanmcmod` or the keys `F7`/`F8`.
 
-## 7. Versioning
+## 7. Versioning and releases
 
 - `version.txt` holds `MAJOR.MINOR.PATCH`. `build.gradle` builds
   `<version.txt>+<minecraft_version>`; the jar name and `fabric.mod.json`
   version come from it.
-- Bump `version.txt` only when the released artifact changes meaning. Never
-  write a version literal into Java code, `fabric.mod.json` or the README.
+- **A release is one commit.** It bumps `version.txt`, writes the matching
+  `CHANGELOG.md` section, and carries the behaviour change that justifies it —
+  never a version bump on its own, never a changelog entry written after the
+  fact in a separate commit.
+- **Semantic versioning for a client mod**: `MAJOR` when a shipped behaviour
+  disappears or a cache target is removed, `MINOR` when a feature or a cache
+  target is added, `PATCH` for fixes that change no setting. A change to what a
+  clean deletes is at least `MINOR`: users notice it.
+- `version.txt` must never be edited in a commit that changes nothing else.
+- **No AI attribution in commits.** Commit messages in this repository end with
+  their own last line: no `Co-Authored-By`, no "Generated with" trailer, no bot
+  signature.
+- Release commits are tagged `v<version>` (for example `v0.3.0`) after they are
+  pushed. Never tag a commit whose CI is red.
 
-## 8. Modrinth / CurseForge policy — mandatory
+## 8. Changelog rules
+
+- `CHANGELOG.md` follows Keep a Changelog: `## [x.y.z] - YYYY-MM-DD`, newest
+  first, sections `Added`, `Changed`, `Fixed`, `Removed` in that order, only the
+  sections that apply.
+- **Every user-visible change gets a bullet in the entry being prepared**, in
+  the same commit as the code. An entry is written for a player, not for a
+  diff: what changed for them, not which class moved.
+- Internal work that a player cannot see (a refactor, a test, a comment) gets
+  no bullet. A behaviour change they *can* see does.
+- Never rewrite a released entry except to correct a factual error, and then
+  say so in the bullet.
+- When a target is added or dropped, the `Notes` section says which versions
+  the release covers.
+
+## 9. Workflow and branch policy
+
+- Branch map (mandatory):
+  - `main` (default) — the 1.21.x tree. It builds and tests **1.21.8, 1.21.9,
+    1.21.10 and 1.21.11** from the same sources; the version is a build
+    dimension, so a change lands here once, not four times.
+  - `1.21.8`, `1.21.9`, `1.21.10`, `1.21.11` — per-target release branches.
+    They carry the same code; a fix that changes behaviour must reach `main`
+    **and** the matching branch, and their diffs must stay empty.
+  - `26.1`, `26.2`, `26.3` — the unobfuscated 26.x trees (official class names,
+    Java 25, no Yarn). A feature of the product belongs on every branch we
+    release from; when a change is not applied there, say so in the changelog
+    `Notes` instead of implying it ships.
+  - `github-pages` — the website. Site-only work never touches the mod code and
+    never gets a changelog entry.
+- **No scratch branches.** Do the work on the branch that owns it; delete any
+  branch created by accident, locally and on `origin`.
+- CI (`.github/workflows/build-1.21.*.yml`) compiles and tests one target each.
+  A change is done when every affected workflow is green, not when one is.
+- The mod is client-only. Never add a server entrypoint, a packet handler, or
+  anything that needs to run on a dedicated server to work.
+
+## 10. Update sources — policy
+
+- **Modrinth** is the reference: identified by file hash, offers per-file SHA-1,
+  publishes dependency metadata. Everything a check decides is decided for
+  Modrinth first, and its project ids are the dependency currency.
+- **CurseForge** is read through the public mirror `api.cfwidget.com`. The
+  official API needs a key and **a client mod must not ship one**; do not add a
+  key field, do not proxy through a server of ours. Files are matched by project
+  slug (mod id with `_`→`-`), so a mod whose slug differs simply offers nothing
+  from this source — that is a miss, not a failure, and never a guess.
+- **GitHub** is only used for mods whose own `fabric.mod.json` names a
+  repository (`contact.sources`, then `homepage`, then `issues`). Matching is by
+  asset name: a jar, the running game version, and the running loader; the
+  repository is never guessed from the mod name.
+- A source that fails never hides the others; a check fails only when every
+  source failed. Log the failure, do not swallow it into "up to date".
+- Prefer the source that publishes a checksum at equal versions
+  (`ModSource` order is the tie-break).
+- Requests stay sequential and are capped per check (40 lookups per non-Modrinth
+  source). No polling, no scheduler, no telemetry — a check happens when the
+  player asks for one.
+
+## 11. Modrinth / CurseForge policy — mandatory
 
 - The mod is **client-side only** and must stay that way (`environment:
   client`, no server entrypoint, no packet handling).
@@ -192,7 +289,7 @@ Refactors happen only when a behaviour must change anyway.
   runtime, from Modrinth, on the user's request.
 - API use is polite: no polling loops, no background scheduler, no telemetry.
 
-## 9. What is not implemented (do not claim otherwise)
+## 12. What is not implemented (do not claim otherwise)
 
 - No mod hiding, no anti-cheat evasion, no server resource-pack bypass.
 - No Quilt-specific testing (the code is Fabric only; Quilt compatibility is
@@ -200,16 +297,17 @@ Refactors happen only when a behaviour must change anyway.
 - Only the latest target (26.3) is tested in game. Every other version branch is
   provided **as is**: it compiles and its unit tests pass, and nothing more is
   promised for it.
-- No 26.x builds on this branch: those targets are unobfuscated, need Java 25
-  and live on the `26.1` / `26.2` / `26.3` branches.
 - No `/cleanmcmod` verification inside a loaded world (the command is exercised
   through the same service as the GUI button).
 - No published release; CI only compiles and tests (`./gradlew build`), it
   does not publish. The language set above is partial.
+- CurseForge and GitHub downloads are **not checksum-verified**: neither
+  publishes a hash. The log says so; the UI must never call them verified.
 
-## 10. Ask before assuming
+## 13. Ask before assuming
 
 If a request implies deleting user data (a new cache target outside the known
 set, an `extraPaths` entry, a "clean everything" button), ask first: which
 path, why, and whether the game regenerates it. Wrong deletions are not
-recoverable.
+recoverable. Map mods are the classic trap: the `cache` folder is ours to
+delete, the waypoints next to it are not.
