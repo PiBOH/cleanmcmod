@@ -33,6 +33,8 @@ public final class CleanMcModConfig {
     public boolean includeMapCaches = true;
     public boolean autoDetect = true;
     public boolean dryRun = false;
+    /** Locale the mod speaks, or an empty string to follow the game language. */
+    public String language = "";
     public List<String> extraPaths = new ArrayList<>();
 
     public List<String> extraPaths() {

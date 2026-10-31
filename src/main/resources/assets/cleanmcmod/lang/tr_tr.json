@@ -80,6 +80,7 @@
   "cleanmcmod.settings.explain": "%s: %s",
   "cleanmcmod.settings.language": "Dil",
   "cleanmcmod.settings.language.hint": "Oyunun dil seçimini açar.",
+  "cleanmcmod.settings.language.auto": "Oyun dili",
   "cleanmcmod.settings.off": "✘ KAPALI",
   "cleanmcmod.settings.on": "✔ AÇIK",
   "cleanmcmod.settings.reset": "Sıfırla",

@@ -3,7 +3,6 @@ package piboh.cleanmc.mod.ui;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.option.LanguageOptionsScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
@@ -74,7 +73,7 @@ public class CacheSettingsScreen extends Screen {
     private Row hovered;
 
     public CacheSettingsScreen(Screen parent, CleanMcModService service) {
-        super(Text.translatable("cleanmcmod.screen.settings.title"));
+        super(Lang.text("cleanmcmod.screen.settings.title"));
         this.parent = parent;
         this.service = service;
     }
@@ -86,8 +85,8 @@ public class CacheSettingsScreen extends Screen {
         this.headers.clear();
 
         this.search = new TextFieldWidget(this.textRenderer, MARGIN, CONTENT_TOP - 26,
-                Math.min(220, this.width / 2), 20, Text.translatable("cleanmcmod.settings.search"));
-        this.search.setPlaceholder(Text.translatable("cleanmcmod.settings.search"));
+                Math.min(220, this.width / 2), 20, Lang.text("cleanmcmod.settings.search"));
+        this.search.setPlaceholder(Lang.text("cleanmcmod.settings.search"));
         this.search.setText(this.filter);
         this.search.setChangedListener(text -> {
             this.filter = text == null ? "" : text;
@@ -106,8 +105,13 @@ public class CacheSettingsScreen extends Screen {
                         })
                         .dimensions(this.width - MARGIN - CONTROL_WIDTH, CONTENT_TOP, CONTROL_WIDTH, 18)
                         .build();
-                case LANGUAGE -> ButtonWidget.builder(Text.translatable("cleanmcmod.button.change"),
-                                pressed -> openLanguages())
+                case LANGUAGE -> ButtonWidget.builder(languageLabel(), pressed -> {
+                            String next = Lang.next(service.config().language);
+                            service.config().language = next;
+                            Lang.select(next);
+                            service.saveConfig();
+                            pressed.setMessage(languageLabel());
+                        })
                         .dimensions(this.width - MARGIN - CONTROL_WIDTH, CONTENT_TOP, CONTROL_WIDTH, 18)
                         .build();
                 case INFO -> null;
@@ -118,23 +122,24 @@ public class CacheSettingsScreen extends Screen {
             }
         }
 
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("cleanmcmod.settings.reset"),
+        this.addDrawableChild(ButtonWidget.builder(Lang.text("cleanmcmod.settings.reset"),
                         button -> resetAll())
                 .dimensions(MARGIN, this.height - 30, 92, 20)
                 .build());
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> this.close())
+        this.addDrawableChild(ButtonWidget.builder(Lang.text("gui.done"), button -> this.close())
                 .dimensions(this.width - MARGIN - 92, this.height - 30, 92, 20)
                 .build());
 
         layout();
     }
 
-    /** The vanilla language selector: it already owns options.txt and the resource reload. */
-    private void openLanguages() {
-        if (this.client != null) {
-            this.client.setScreen(new LanguageOptionsScreen(this, this.client.options,
-                    this.client.getLanguageManager()));
-        }
+    /**
+     * The label of the language control: the name the chosen language calls itself, or the game
+     * language entry. Minecraft has no per-mod language, so this switches our own table only.
+     */
+    private Text languageLabel() {
+        String name = Lang.name(service.config().language);
+        return name == null ? Lang.text("cleanmcmod.settings.language.auto") : Text.literal(name);
     }
 
     @Override
@@ -152,7 +157,7 @@ public class CacheSettingsScreen extends Screen {
             if (y < CONTENT_TOP - HEADER_HEIGHT || y >= bottom) {
                 continue;
             }
-            context.drawText(this.textRenderer, Text.translatable(header.getKey()), MARGIN, y + 6,
+            context.drawText(this.textRenderer, Lang.text(header.getKey()), MARGIN, y + 6,
                     Texts.COLOR_OK, false);
             context.fill(MARGIN, y + 17, contentRight, y + 18, 0x33FFFFFF);
         }
@@ -175,13 +180,11 @@ public class CacheSettingsScreen extends Screen {
             }
             boolean modified = row.entry.kind() == Kind.TOGGLE
                     && row.entry.getter().get() != row.entry.defaultValue();
-            Text label = Text.translatable(row.entry.labelKey());
+            Text label = Lang.text(row.entry.labelKey());
             Text name = modified ? Text.literal("● ").append(label) : label;
             context.drawText(this.textRenderer, name, MARGIN + 4, y + 5, 0xFFFFFFFF, false);
 
-            Text detail = row.entry.kind() == Kind.LANGUAGE
-                    ? Text.translatable("language.name")
-                    : measure(row.entry);
+            Text detail = row.entry.kind() == Kind.INFO ? null : measure(row.entry);
             if (detail != null) {
                 int width = this.textRenderer.getWidth(detail);
                 int limit = this.width - MARGIN - CONTROL_WIDTH - 10;
@@ -205,26 +208,26 @@ public class CacheSettingsScreen extends Screen {
     }
 
     private Text info(Entry entry) {
-        return Text.translatable(entry.labelKey(), version());
+        return Lang.text(entry.labelKey(), version());
     }
 
     private void renderExplanation(DrawContext context) {
         Text line;
         int color = Texts.COLOR_INFO;
         if (this.hovered == null || this.hovered.entry.kind() == Kind.INFO) {
-            line = Text.translatable("cleanmcmod.screen.settings.intro");
+            line = Lang.text("cleanmcmod.screen.settings.intro");
         } else if (this.hovered.entry.kind() == Kind.LANGUAGE) {
-            line = Text.translatable("cleanmcmod.settings.language.hint");
+            line = Lang.text("cleanmcmod.settings.language.hint");
         } else {
             Entry option = this.hovered.entry;
-            Text label = Text.translatable(option.labelKey());
+            Text label = Lang.text(option.labelKey());
             List<CacheTarget> targets = targetsFor(option);
             if (targets.isEmpty()) {
-                line = Text.translatable("cleanmcmod.settings.explain", label,
-                        Text.translatable("cleanmcmod.screen.settings.intro"));
+                line = Lang.text("cleanmcmod.settings.explain", label,
+                        Lang.text("cleanmcmod.screen.settings.intro"));
             } else {
-                line = Text.translatable("cleanmcmod.settings.explain", label,
-                        Text.translatable(targets.get(0).safety().translationKey()));
+                line = Lang.text("cleanmcmod.settings.explain", label,
+                        Lang.text(targets.get(0).safety().translationKey()));
                 color = Texts.COLOR_OK;
             }
         }
@@ -270,7 +273,7 @@ public class CacheSettingsScreen extends Screen {
                 row.button.setY(y + 2);
                 row.button.setMessage(row.entry.kind() == Kind.TOGGLE
                         ? stateLabel(row.entry)
-                        : Text.translatable("cleanmcmod.button.change"));
+                        : languageLabel());
                 row.button.visible = row.visible;
             }
             y += ROW_HEIGHT;
@@ -287,13 +290,13 @@ public class CacheSettingsScreen extends Screen {
             return true;
         }
         String needle = this.filter.trim().toLowerCase(Locale.ROOT);
-        return Text.translatable(entry.labelKey()).getString().toLowerCase(Locale.ROOT).contains(needle);
+        return Lang.text(entry.labelKey()).getString().toLowerCase(Locale.ROOT).contains(needle);
     }
 
     private Text stateLabel(Entry option) {
         return option.getter().get()
-                ? Text.translatable("cleanmcmod.settings.on")
-                : Text.translatable("cleanmcmod.settings.off");
+                ? Lang.text("cleanmcmod.settings.on")
+                : Lang.text("cleanmcmod.settings.off");
     }
 
     /** Files and bytes the option would free, from the scan taken when the screen opened. */
@@ -312,7 +315,7 @@ public class CacheSettingsScreen extends Screen {
             bytes += state.bytes();
         }
         if (files == 0) {
-            return Text.translatable("cleanmcmod.status.missing");
+            return Lang.text("cleanmcmod.status.missing");
         }
         return Text.literal(files + " · " + piboh.cleanmc.mod.clean.CleanReport.formatBytes(bytes));
     }

@@ -80,6 +80,7 @@
   "cleanmcmod.settings.explain": "%s: %s",
   "cleanmcmod.settings.language": "Język",
   "cleanmcmod.settings.language.hint": "Otwiera wybór języka gry.",
+  "cleanmcmod.settings.language.auto": "Język gry",
   "cleanmcmod.settings.off": "✘ WYŁ.",
   "cleanmcmod.settings.on": "✔ WŁ.",
   "cleanmcmod.settings.reset": "Resetuj",

@@ -80,6 +80,7 @@
   "cleanmcmod.settings.explain": "%s: %s",
   "cleanmcmod.settings.language": "Taal",
   "cleanmcmod.settings.language.hint": "Opent de taalkeuze van het spel.",
+  "cleanmcmod.settings.language.auto": "Speltaal",
   "cleanmcmod.settings.off": "✘ UIT",
   "cleanmcmod.settings.on": "✔ AAN",
   "cleanmcmod.settings.reset": "Herstellen",
