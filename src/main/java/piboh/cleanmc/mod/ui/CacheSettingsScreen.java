@@ -319,8 +319,10 @@ public class CacheSettingsScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && this.filter.isBlank()
+    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+        if (click.button() == 0 && this.filter.isBlank()
                 && mouseX >= MARGIN && mouseX < MARGIN + NAV_WIDTH) {
             int y = NAV_TOP;
             for (String key : SECTIONS) {
@@ -335,7 +337,7 @@ public class CacheSettingsScreen extends Screen {
                 y += NAV_ROW;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, doubled);
     }
 
     @Override
