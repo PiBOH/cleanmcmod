@@ -26,6 +26,7 @@ public final class CleanMcModService {
     private final CacheAutoDetector detector = new CacheAutoDetector();
     private final ExecutorService executor;
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean scanning = new AtomicBoolean(false);
 
     private volatile CacheScan lastScan;
     private volatile CleanReport lastReport;
@@ -73,7 +74,23 @@ public final class CleanMcModService {
     }
 
     public boolean isRunning() {
-        return running.get();
+        return running.get() || scanning.get();
+    }
+
+    /**
+     * Measures every target off the client thread, so the Rescan button repaints the menu instead of
+     * freezing it while a multi-gigabyte asset folder is walked.
+     */
+    public CompletableFuture<CacheScan> rescanAsync() {
+        if (!scanning.compareAndSet(false, true)) {
+            return CompletableFuture.completedFuture(lastScan);
+        }
+        return CompletableFuture.supplyAsync(this::scan, executor).whenComplete((scan, error) -> {
+            scanning.set(false);
+            if (error != null) {
+                CleanMcMod.LOGGER.warn("Cache scan failed: {}", error.toString());
+            }
+        });
     }
 
     /** Cleans asynchronously. Returns an already completed future when a clean is in progress. */
