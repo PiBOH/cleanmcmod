@@ -45,7 +45,13 @@ public final class ModInstaller {
 
     /**
      * Installs the requested updates and the dependencies resolved for them as one unit: every jar
-     * is downloaded and hash-checked first, so a failure leaves {@code mods/} untouched.
+     * is downloaded and hash-checked first, so nothing in {@code mods/} changes until the whole set
+     * is ready.
+     *
+     * <p>One update whose own jar cannot be fetched fails alone: the other mods in the request are
+     * still installed, and the alert names the file that could not be downloaded. A dependency is
+     * different - installing a mod without the library it requires is the half-install the batch
+     * exists to prevent, so a missing dependency cancels everything.</p>
      */
     public List<Outcome> installTogether(List<ModUpdate> updates, List<ModVersion> dependencies,
             Downloader downloader) {
@@ -55,26 +61,42 @@ public final class ModInstaller {
         for (ModVersion version : dependencies) {
             unique.putIfAbsent(version.fileKey(), version);
         }
+        Map<String, ModUpdate> requested = new LinkedHashMap<>();
         for (ModUpdate update : updates) {
             unique.putIfAbsent(update.candidate().fileKey(), update.candidate());
+            requested.put(update.candidate().fileKey(), update);
         }
-        List<ModVersion> jars = new ArrayList<>(unique.values());
 
-        List<Prepared> prepared = new ArrayList<>(jars.size());
+        List<Prepared> prepared = new ArrayList<>(unique.size());
+        Map<String, String> broken = new LinkedHashMap<>();
         try {
             Files.createDirectories(modsDir);
-            for (ModVersion version : jars) {
+            for (ModVersion version : unique.values()) {
                 if (!modsDir.resolve(version.fileName()).normalize().startsWith(modsDir)) {
                     throw new IOException("file name escapes the mods folder: " + version.fileName());
                 }
                 Path temp = Files.createTempFile(modsDir, ".cleanmcmod-", ".tmp");
+                try {
+                    fetch(downloader, version, temp);
+                    verify(version, temp);
+                } catch (IOException e) {
+                    deleteQuietly(temp);
+                    if (!requested.containsKey(version.fileKey())) {
+                        // A library the batch needs is missing: the updates that need it cannot be
+                        // installed, and the ones that do not are not worth splitting the batch for.
+                        throw e;
+                    }
+                    broken.put(version.fileKey(), message(e));
+                    CleanMcMod.LOGGER.warn("Leaving {} out of this batch: {}", version.fileName(),
+                            message(e));
+                    continue;
+                }
                 prepared.add(new Prepared(version, temp));
-                fetch(downloader, version, temp);
-                verify(version, temp);
             }
         } catch (IOException | RuntimeException e) {
             discard(prepared);
             String reason = message(e);
+            CleanMcMod.LOGGER.warn("Mod update batch cancelled, mods folder unchanged: {}", reason);
             List<Outcome> failures = new ArrayList<>(updates.size());
             for (ModUpdate update : updates) {
                 failures.add(new Outcome(update, false, reason));
@@ -89,6 +111,8 @@ public final class ModInstaller {
                         StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
                 discard(prepared);
+                CleanMcMod.LOGGER.warn("Could not write {} into the mods folder: {}",
+                        entry.version().fileName(), message(e));
                 for (ModUpdate update : updates) {
                     outcomes.add(new Outcome(update, false, message(e)));
                 }
@@ -96,7 +120,10 @@ public final class ModInstaller {
             }
         }
         for (ModUpdate update : updates) {
-            outcomes.add(new Outcome(update, true, removeObsolete(update)));
+            String reason = broken.get(update.candidate().fileKey());
+            outcomes.add(reason == null
+                    ? new Outcome(update, true, removeObsolete(update))
+                    : new Outcome(update, false, reason));
         }
         return outcomes;
     }
@@ -244,7 +271,15 @@ public final class ModInstaller {
             return;
         }
         if (!ModScanner.sha1(temp).equalsIgnoreCase(version.sha1())) {
-            throw new IOException("downloaded file does not match the published checksum");
+            throw new IOException(version.fileName() + ": downloaded file does not match the published checksum");
+        }
+    }
+
+    private static void deleteQuietly(Path file) {
+        try {
+            Files.deleteIfExists(file);
+        } catch (IOException ignored) {
+            CleanMcMod.LOGGER.debug("Could not delete temporary download {}", file);
         }
     }
 
