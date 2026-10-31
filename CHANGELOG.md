@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `version.txt` is the single source of
 truth for the version; a new `## [x.y.z]` section is written in the same commit that bumps it.
 
+## [0.3.3] - 2026-10-31
+
+### Fixed
+
+- **A mod that cannot be downloaded no longer cancels the whole install.** The other mods in the
+  request are installed and the alert names the jar that failed, instead of losing every download
+  because of one bad file. A missing required dependency still cancels the batch, which is what keeps
+  a mod from being installed without the library it needs.
+- **A failed install says why, on screen and in the log.** The reason names the file plus the HTTP
+  status or the checksum mismatch, a download is retried once before giving up, and the task ends as a
+  visible failure instead of leaving the screen on Installing forever.
+
 ## [0.3.2] - 2026-10-31
 
 ### Fixed
