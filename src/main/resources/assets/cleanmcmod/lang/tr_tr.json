@@ -2,6 +2,8 @@
   "cleanmcmod.about.creator": "Geliştirici: PiBOH",
   "cleanmcmod.about.inspired": "ModMenuUpdater, Sodium ve Reese's Sodium Options esinlenmiştir",
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
+  "cleanmcmod.about.tagline": "Oyunun yanlış çizmesine yol açan önbellekleri temizler ve modlarını Modrinth, CurseForge ve GitHub'dan günceller.",
+  "cleanmcmod.about.client_only": "Yalnızca istemci: sunucuya hiç kurulmaz.",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "Değiştir...",
   "cleanmcmod.button.clean": "Şimdi temizle",

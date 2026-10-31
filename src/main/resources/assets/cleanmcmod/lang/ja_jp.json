@@ -2,6 +2,8 @@
   "cleanmcmod.about.creator": "制作者: PiBOH",
   "cleanmcmod.about.inspired": "ModMenuUpdater、Sodium、Reese's Sodium Options に着想",
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
+  "cleanmcmod.about.tagline": "ゲームの表示がおかしくなるキャッシュを消し、Modrinth、CurseForge、GitHub から MOD を更新します。",
+  "cleanmcmod.about.client_only": "クライアント専用: サーバーには導入されません。",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "変更...",
   "cleanmcmod.button.clean": "今すぐ掃除",

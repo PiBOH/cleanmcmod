@@ -2,6 +2,8 @@
   "cleanmcmod.about.creator": "Creator: PiBOH",
   "cleanmcmod.about.inspired": "Inspired by ModMenuUpdater, Sodium and Reese's Sodium Options",
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
+  "cleanmcmod.about.tagline": "Cleans the caches that make the game render wrong and updates your mods from Modrinth, CurseForge and GitHub.",
+  "cleanmcmod.about.client_only": "Client only: it is never installed on a server.",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "Change...",
   "cleanmcmod.button.clean": "Clean now",
