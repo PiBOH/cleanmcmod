@@ -37,6 +37,6 @@ truth for the version; a new `## [x.y.z]` section is written in the same commit 
 
 ### Notes
 
-- Targets in this tree: 1.21.8, 1.21.9, 1.21.10 and 1.21.11, all four built and tested for this
-  release. The 26.1, 26.2 and 26.3 branches use the unobfuscated 26.x API names and do not carry
-  these features yet: they need the same change ported to their own sources.
+- All seven release branches ship in this release: 1.21.8, 1.21.9, 1.21.10 and 1.21.11 on Java 21,
+  26.1, 26.2 and 26.3 on Java 25. The 26.x line draws the settings rows itself, so it has no search
+  box there; every other feature is identical.
