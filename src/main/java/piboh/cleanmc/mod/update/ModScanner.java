@@ -17,14 +17,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-/** Lists the jars in {@code mods/} that can be looked up on Modrinth. */
+/** Lists the jars in {@code mods/} that can be looked up on Modrinth, CurseForge or a mod's GitHub repository. */
 public final class ModScanner {
 
     public static final String OWN_MOD_ID = CleanMcMod.MOD_ID;
+
+    private static final Pattern GITHUB = Pattern.compile(
+            "github\\.com[/:]([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)", Pattern.CASE_INSENSITIVE);
+
+    /** Path segments that are not a repository owner. */
+    private static final List<String> NOT_OWNERS = List.of("sponsors", "users", "orgs", "features", "topics");
 
     public List<LocalMod> scan(Path gameDir) {
         Path modsDir = gameDir.resolve("mods");
@@ -67,6 +75,8 @@ public final class ModScanner {
         }
         String modId = null;
         String version = null;
+        String name = null;
+        String githubRepo = null;
         Map<String, String> depends = new HashMap<>();
         try (ZipFile zip = new ZipFile(jar.toFile())) {
             ZipEntry entry = zip.getEntry("fabric.mod.json");
@@ -77,6 +87,8 @@ public final class ModScanner {
                             .getAsJsonObject();
                     modId = string(metadata, "id");
                     version = string(metadata, "version");
+                    name = string(metadata, "name");
+                    githubRepo = githubRepo(metadata);
                     depends = ranges(metadata, "depends");
                 }
             }
@@ -84,7 +96,45 @@ public final class ModScanner {
             // Not a mod jar, or a broken one: still hashable, so an update can be found by hash.
             CleanMcMod.LOGGER.debug("No readable fabric.mod.json in {}: {}", jar, e.toString());
         }
-        return new LocalMod(jar, sha1, modId, version, depends);
+        return new LocalMod(jar, sha1, modId, version, depends, githubRepo, name);
+    }
+
+    /**
+     * The GitHub repository a mod names in its own metadata, as {@code owner/repo}. Sources and
+     * homepage are preferred over the issue tracker, which is often a different repository.
+     */
+    static String githubRepo(JsonObject metadata) {
+        if (!metadata.has("contact") || !metadata.get("contact").isJsonObject()) {
+            return null;
+        }
+        JsonObject contact = metadata.getAsJsonObject("contact");
+        for (String key : List.of("sources", "source", "homepage", "issues")) {
+            String repo = repoFrom(string(contact, key));
+            if (repo != null) {
+                return repo;
+            }
+        }
+        return null;
+    }
+
+    /** {@code owner/repo} from a GitHub URL, or null when the URL is not a repository. */
+    static String repoFrom(String url) {
+        if (url == null || url.isBlank()) {
+            return null;
+        }
+        Matcher matcher = GITHUB.matcher(url);
+        if (!matcher.find()) {
+            return null;
+        }
+        String owner = matcher.group(1);
+        String repo = matcher.group(2);
+        if (NOT_OWNERS.contains(owner.toLowerCase(Locale.ROOT))) {
+            return null;
+        }
+        if (repo.toLowerCase(Locale.ROOT).endsWith(".git")) {
+            repo = repo.substring(0, repo.length() - 4);
+        }
+        return owner + "/" + repo;
     }
 
     /** The {@code depends} block of a mod, as id to version predicate. Non-string values are skipped. */
