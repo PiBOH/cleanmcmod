@@ -1,8 +1,6 @@
 package piboh.cleanmc.mod.ui;
 
-import piboh.cleanmc.mod.clean.CacheTarget;
-import piboh.cleanmc.mod.clean.CleanReport;
-import piboh.cleanmc.mod.clean.TargetResult;
+import piboh.cleanmc.mod.update.ModSource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 
@@ -17,17 +15,17 @@ public final class Texts {
     private Texts() {
     }
 
-    public static Text targetName(CacheTarget target) {
+    public static Text targetName(piboh.cleanmc.mod.clean.CacheTarget target) {
         return target.label() != null
                 ? Text.literal(target.label())
                 : Text.translatable(target.translationKey());
     }
 
-    public static Text status(TargetResult result) {
+    public static Text status(piboh.cleanmc.mod.clean.TargetResult result) {
         return Text.translatable("cleanmcmod.status." + result.status().name().toLowerCase(java.util.Locale.ROOT));
     }
 
-    public static int statusColor(TargetResult result) {
+    public static int statusColor(piboh.cleanmc.mod.clean.TargetResult result) {
         return switch (result.status()) {
             case CLEANED -> COLOR_OK;
             case PARTIAL -> COLOR_WARN;
@@ -38,7 +36,11 @@ public final class Texts {
     }
 
     public static MutableText bytes(long bytes) {
-        return Text.literal(CleanReport.formatBytes(bytes));
+        return Text.literal(piboh.cleanmc.mod.clean.CleanReport.formatBytes(bytes));
     }
 
+    /** The name of the source an update comes from, for the row tag. */
+    public static Text source(ModSource source) {
+        return Text.translatable(source.translationKey());
+    }
 }
