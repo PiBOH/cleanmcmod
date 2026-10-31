@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `version.txt` is the single source of
 truth for the version; a new `## [x.y.z]` section is written in the same commit that bumps it.
 
-## [0.3.8] - 2026-11-01
+## [0.3.7] - 2026-11-01
 
 ### Added
 
@@ -17,11 +17,6 @@ truth for the version; a new `## [x.y.z]` section is written in the same commit 
   the mod does not override still come from the game.
 - Quilt loads this jar through its own Fabric compatibility, and the update check asks `quilt` first
   when the Quilt loader is present. Documented in `AGENTS.md`, not verified in game on Quilt.
-
-## [0.3.7] - 2026-11-01
-
-### Added
-
 - **The update list names its columns.** Mod, Installed, New and Select, so the box on the right and
   the name on the left are no longer left to guess.
 
