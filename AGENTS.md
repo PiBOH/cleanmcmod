@@ -214,8 +214,33 @@ Refactors happen only when a behaviour must change anyway.
 - **No AI attribution in commits.** Commit messages in this repository end with
   their own last line: no `Co-Authored-By`, no "Generated with" trailer, no bot
   signature.
-- Release commits are tagged `v<version>` (for example `v0.3.0`) after they are
-  pushed. Never tag a commit whose CI is red.
+- **The release follows `PiBOH/DedicatedPower`, and that is the only supported
+  method:**
+  - One release is produced from `main` by `.github/workflows/auto-release.yml`.
+    A push to `main` releases **only when the commit subject starts with `v`**
+    (for example `v0.3.0: release every Minecraft version`); a manual
+    `workflow_dispatch` can pass the version instead.
+  - The workflow builds **one jar per Minecraft branch** — `1.21.8`, `1.21.9`,
+    `1.21.10`, `1.21.11`, `26.1`, `26.2`, `26.3` — with `fail-fast: false`, so a
+    broken branch never cancels the other jars, and publishes a single GitHub
+    release with all of them attached.
+  - The tag and the title are the **mod version** (`v0.3.0`), never a Minecraft
+    version. `version.txt` holds the mod version only; the Minecraft target is a
+    build dimension that shows in the jar name (`cleanmcmod-0.3.0+26.3.jar`) and
+    in the release table. Do not put `<minecraft>-<version>` in `version.txt`.
+  - The release body is generated: a `| Minecraft | Java | Jar |` table built
+    from the jars actually collected, plus the `CHANGELOG.md` section for that
+    version. An empty artifact set fails the run instead of publishing an empty
+    release.
+  - The version branches **never release**: they only run their own
+    `build-*.yml` on every push. A release is triggered from `main` alone.
+  - An existing tag aborts the run: bump `version.txt` before releasing again,
+    never re-tag a published version.
+  - The release commit carries the same version, changelog and code that the
+    matrix builds, so `main` and the seven version branches are pushed together
+    and all of them must be green.
+- Never tag a commit whose CI is red, and never push a release tag by hand: the
+  workflow creates it from the release job.
 
 ## 8. Changelog rules
 
@@ -249,8 +274,10 @@ Refactors happen only when a behaviour must change anyway.
     never gets a changelog entry.
 - **No scratch branches.** Do the work on the branch that owns it; delete any
   branch created by accident, locally and on `origin`.
-- CI (`.github/workflows/build-1.21.*.yml`) compiles and tests one target each.
-  A change is done when every affected workflow is green, not when one is.
+- CI (`.github/workflows/build-1.21.*.yml` and `build-26.*.yml`) compiles and
+  tests one target each on every push. `auto-release.yml` runs on `main` only
+  and builds all seven branches when a `v` commit asks for a release (§7). A
+  change is done when every affected workflow is green, not when one is.
 - The mod is client-only. Never add a server entrypoint, a packet handler, or
   anything that needs to run on a dedicated server to work.
 

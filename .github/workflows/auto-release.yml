@@ -1,29 +1,119 @@
-name: Release
+name: Auto Release
 
-# One release, every jar. Each supported Minecraft version is built from its own
-# branch (they have different mappings, Java levels and Loom plugins), the jars
-# are collected, and a single GitHub release is created with all of them.
-# Push a tag such as v0.2.0 (or run the workflow by hand) to publish.
+# One release from main, carrying one jar per Minecraft branch. The method is the
+# same as PiBOH/DedicatedPower:
+#
+#   * pushing to main releases **only when the commit subject starts with "v"**
+#     (for example "v0.3.0: release every Minecraft version"); a manual
+#     workflow_dispatch may pass the version instead;
+#   * the version branches (1.21.8 ... 26.3) never release, they only run their
+#     own build workflow on every push;
+#   * this workflow builds every branch with fail-fast disabled, so one broken
+#     branch cannot cancel the other jars, and publishes one release with all of
+#     them attached.
+#
+# version.txt on main holds the mod version only (0.3.0). The tag and the title
+# are that version with a "v" prefix. The Minecraft version stays in the jar
+# name (cleanmcmod-0.3.0+26.3.jar) and in the release table, so the download
+# page still says which build belongs to which Minecraft version.
 on:
   push:
-    tags: ['v*']
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Mod version to release (e.g. 0.3.0). Leave empty to use version.txt.'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    name: Resolve release version
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'v')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      name: ${{ steps.release.outputs.name }}
+      channel: ${{ steps.release.outputs.channel }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      branches: ${{ steps.release.outputs.branches }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read the release version
+        id: release
+        shell: bash
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          # version.txt holds the mod version only, for example 0.3.0. The
+          # Minecraft version is a build dimension of each branch and appears in
+          # the jar name, never here. A manual dispatch may override it.
+          FILE_VERSION="$(tr -d '[:space:]' < version.txt)"
+          VERSION="${VERSION_INPUT:-${FILE_VERSION}}"
+          if [[ ! "$VERSION" =~ ^[0-9]+([.][0-9]+)*(-[A-Za-z0-9]+([.][0-9]+)*)?$ ]]; then
+            echo "Invalid release version: ${VERSION}" >&2
+            echo "version.txt must look like 0.3.0; the mod part may be 0.3.0, 0.3.0-beta or 0.3.0-rc1." >&2
+            exit 1
+          fi
+          if [[ "$VERSION" =~ ^(.+)-(beta|alpha|rc)([.][0-9]+)?$ ]]; then
+            CHANNEL="${BASH_REMATCH[2]}"
+            PRERELEASE=true
+          else
+            CHANNEL="stable"
+            PRERELEASE=false
+          fi
+          TAG="v${VERSION}"
+          RELEASE_NAME="CleanMCMod ${VERSION}"
+          # Every Minecraft branch whose jar the release carries. Add a branch
+          # here when a new Minecraft line is added, and keep its build workflow
+          # on that branch so it can be built.
+          BRANCHES='["1.21.8","1.21.9","1.21.10","1.21.11","26.1","26.2","26.3"]'
+          {
+            echo "version=${VERSION}"
+            echo "tag=${TAG}"
+            echo "name=${RELEASE_NAME}"
+            echo "channel=${CHANNEL}"
+            echo "prerelease=${PRERELEASE}"
+            echo "branches=${BRANCHES}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Version: ${VERSION}"
+          echo "Channel: ${CHANNEL}"
+          echo "Prerelease: ${PRERELEASE}"
+          echo "Tag: ${TAG}"
+          echo "Branches: ${BRANCHES}"
+
+      - name: Check for an existing release tag
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --refs origin "refs/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "A release tag named ${RELEASE_TAG} already exists. Bump version.txt before the next release." >&2
+            exit 1
+          fi
+
   build:
     name: Build ${{ matrix.branch }}
+    needs: prepare
     runs-on: ubuntu-latest
     strategy:
+      # One failing branch must not stop the other jars from being released.
       fail-fast: false
       matrix:
-        branch: ['1.21.8', '1.21.9', '1.21.10', '1.21.11', '26.1', '26.2', '26.3']
+        branch: ${{ fromJson(needs.prepare.outputs.branches) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,60 +153,111 @@ jobs:
 
   release:
     name: Publish the release
-    needs: build
+    needs: [prepare, build]
+    if: always() && needs.prepare.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - name: Download every branch jar
+        uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: jar-*
           merge-multiple: true
 
-      - name: Create or update the release with every jar
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REF_TYPE: ${{ github.ref_type }}
-          REF_NAME: ${{ github.ref_name }}
+      - name: Check the collected jars
         shell: bash
         run: |
           set -euo pipefail
-          version=$(tr -d '[:space:]' < version.txt)
-          if [ "$REF_TYPE" = "tag" ]; then tag="$REF_NAME"; else tag="v$version"; fi
+          shopt -s nullglob
+          JARS=(dist/*.jar)
+          if [[ ${#JARS[@]} -eq 0 ]]; then
+            echo "No branch produced a jar, nothing to publish." >&2
+            exit 1
+          fi
+          printf 'Publishing %d jar(s):\n' "${#JARS[@]}"
+          printf ' - %s\n' "${JARS[@]}"
 
-          echo "Releasing $tag with:"
-          ls -1 dist
-
-          notes=$(mktemp)
+      - name: List the builds
+        id: builds
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          # One table row per jar, ordered by Minecraft version, so the release
+          # page says which download belongs to which game instead of only
+          # naming the files.
           {
-            echo "CleanMCMod $tag - one jar per Minecraft version."
-            echo
+            echo "list<<BUILDS_EOF"
             echo "| Minecraft | Java | Jar |"
-            echo "|---|---|---|"
-            for jar in $(ls -1 dist | sort); do
-              mc=${jar#*+}; mc=${mc%.jar}
+            echo "| --- | --- | --- |"
+            for jar in $(printf '%s\n' dist/*.jar | sort -V); do
+              name="$(basename "$jar")"
+              if [[ "$name" =~ ^cleanmcmod-.*[+]([0-9]+([.][0-9]+)*)[.]jar$ ]]; then
+                mc="${BASH_REMATCH[1]}"
+              else
+                mc="unknown"
+              fi
               case "$mc" in
                 26.*) java=25 ;;
                 *)    java=21 ;;
               esac
-              echo "| $mc | $java | \`$jar\` |"
+              echo "| ${mc} | ${java} | \`${name}\` |"
             done
-            echo
-            echo "**Tested configuration.** The author tests only the latest Minecraft"
-            echo "version. Every other branch is provided **as is**: it compiles and its"
-            echo "unit tests pass, but no in-game guarantee is made for it."
-            echo
-            echo "Client only: install it in \`mods/\` next to Fabric API. Mod Menu is"
-            echo "optional. Release notes and the change log live in the repository;"
-            echo "the project page is https://piboh.github.io/cleanmcmod/"
-          } > "$notes"
+            echo "BUILDS_EOF"
+          } >> "$GITHUB_OUTPUT"
 
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/*.jar --clobber
-            gh release edit "$tag" --notes-file "$notes"
+      - name: Extract changelog section
+        id: changelog
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Grab the Keep a Changelog section for this version (## [<version>] ...)
+          if [[ ! -f CHANGELOG.md ]]; then
+            SECTION=""
           else
-            gh release create "$tag" dist/*.jar \
-              --title "CleanMCMod $tag" \
-              --target main \
-              --notes-file "$notes"
+            SECTION="$(awk -v v="$VERSION" '
+              index($0, "## [" v "]") == 1 { found = 1; print; next }
+              found && /^## / { exit }
+              found { print }
+            ' CHANGELOG.md)"
           fi
+          if [[ -z "$SECTION" ]]; then
+            SECTION="*No changelog entry found for version ${VERSION}.*"
+          fi
+          # EOF-delimited output so multiline content survives workflow outputs
+          {
+            echo "section<<CHANGELOG_EOF"
+            echo "$SECTION"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ needs.prepare.outputs.prerelease }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          body: |
+            ## CleanMCMod ${{ needs.prepare.outputs.version }}
+            **Release channel:** `${{ needs.prepare.outputs.channel }}`
+
+            **Download**
+            ${{ steps.builds.outputs.list }}
+
+            Pick the jar that matches your game: install Fabric Loader and the Fabric API for that Minecraft version, then put the jar in the client `mods` folder. Mod Menu is optional; with Mod Menu Updater installed this mod lists updates and leaves installing to it.
+
+            ${{ steps.changelog.outputs.section }}
+
+            ---
+            This release was built automatically from commit `${{ github.sha }}` on `main`.
+          files: dist/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
