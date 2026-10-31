@@ -79,8 +79,12 @@ public final class VersionComparator {
             cleaned = cleaned.replace(loader, "-");
         }
         if (gameVersion != null && !gameVersion.isBlank()) {
-            String game = gameVersion.trim().toLowerCase(Locale.ROOT);
-            cleaned = cleaned.replace("mc" + game, "-").replace(game, "-");
+            // Only a standalone game version is dropped: stripping it inside a longer number would
+            // turn a real version (0.26.3 shipped as mc26.3-0.26.3-fabric) into something else, and
+            // leaving the ".0" of 26.3.0 behind would keep the same build looking newer.
+            String game = java.util.regex.Pattern.quote(gameVersion.trim().toLowerCase(Locale.ROOT));
+            String standalone = "(?<![0-9.])(?:mc)?" + game + "([.]0)?(?![0-9])";
+            cleaned = cleaned.replaceAll(standalone, "-");
         }
         return cleaned;
     }
