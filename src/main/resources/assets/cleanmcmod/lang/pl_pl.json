@@ -2,6 +2,8 @@
   "cleanmcmod.about.creator": "Autor: PiBOH",
   "cleanmcmod.about.inspired": "Zainspirowane przez ModMenuUpdater, Sodium i Reese's Sodium Options",
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
+  "cleanmcmod.about.tagline": "Czyści pamięć podręczną, przez którą gra rysuje źle, i aktualizuje mody z Modrinth, CurseForge i GitHuba.",
+  "cleanmcmod.about.client_only": "Tylko klient: nigdy nie jest instalowany na serwerze.",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "Zmień...",
   "cleanmcmod.button.clean": "Wyczyść teraz",
