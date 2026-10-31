@@ -80,6 +80,7 @@
   "cleanmcmod.settings.explain": "%s: %s",
   "cleanmcmod.settings.language": "语言",
   "cleanmcmod.settings.language.hint": "打开游戏的语言选择。",
+  "cleanmcmod.settings.language.auto": "游戏语言",
   "cleanmcmod.settings.off": "✘ 关",
   "cleanmcmod.settings.on": "✔ 开",
   "cleanmcmod.settings.reset": "重置",

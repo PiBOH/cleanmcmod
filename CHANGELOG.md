@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `version.txt` is the single source of
 truth for the version; a new `## [x.y.z]` section is written in the same commit that bumps it.
 
+## [0.3.8] - 2026-11-01
+
+### Added
+
+- **The install screen says what it is doing.** Under the bar it prints the jar being fetched, its
+  size and the speed it arrived at, so a download that takes a minute no longer looks stuck.
+- **The mod speaks its own language.** The Interface row in the settings cycles through the fifteen
+  shipped languages, or back to the game language, without touching Minecraft's own language; keys
+  the mod does not override still come from the game.
+- Quilt loads this jar through its own Fabric compatibility, and the update check asks `quilt` first
+  when the Quilt loader is present. Documented in `AGENTS.md`, not verified in game on Quilt.
+
 ## [0.3.7] - 2026-11-01
 
 ### Added

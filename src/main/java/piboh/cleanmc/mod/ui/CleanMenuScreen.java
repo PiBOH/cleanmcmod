@@ -25,7 +25,7 @@ public class CleanMenuScreen extends Screen {
     private CleanReport shownReport;
 
     public CleanMenuScreen(CleanMcModService service, ModUpdaterService updater) {
-        super(Component.translatable("cleanmcmod.screen.main.title"));
+        super(Lang.text("cleanmcmod.screen.main.title"));
         this.service = service;
         this.updater = updater;
     }
@@ -38,21 +38,21 @@ public class CleanMenuScreen extends Screen {
         int centerX = this.width / 2;
         int buttonY = this.height - 76;
 
-        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.clean"), button -> service.cleanAsync())
+        this.addRenderableWidget(Button.builder(Lang.text("cleanmcmod.button.clean"), button -> service.cleanAsync())
                 .bounds(centerX - BUTTON_WIDTH - 2, buttonY, BUTTON_WIDTH, 20)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.rescan"), button -> service.rescanAsync())
+        this.addRenderableWidget(Button.builder(Lang.text("cleanmcmod.button.rescan"), button -> service.rescanAsync())
                 .bounds(centerX + 2, buttonY, BUTTON_WIDTH, 20)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.update_mods"),
+        this.addRenderableWidget(Button.builder(Lang.text("cleanmcmod.button.update_mods"),
                         button -> this.minecraft.setScreenAndShow(new ModUpdatesScreen(this, updater)))
                 .bounds(centerX - BUTTON_WIDTH - 2, buttonY + 24, BUTTON_WIDTH, 20)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.settings"),
+        this.addRenderableWidget(Button.builder(Lang.text("cleanmcmod.button.settings"),
                         button -> this.minecraft.setScreenAndShow(new CacheSettingsScreen(this, service)))
                 .bounds(centerX + 2, buttonY + 24, BUTTON_WIDTH, 20)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> this.onClose())
+        this.addRenderableWidget(Button.builder(Lang.text("gui.done"), button -> this.onClose())
                 .bounds(centerX - BUTTON_WIDTH / 2, buttonY + 48, BUTTON_WIDTH, 20)
                 .build());
     }
@@ -77,10 +77,10 @@ public class CleanMenuScreen extends Screen {
 
         if (service.config().dryRun) {
             graphics.centeredText(this.font,
-                    Component.translatable("cleanmcmod.screen.main.dry_run"), centerX, 30, Texts.COLOR_WARN);
+                    Lang.text("cleanmcmod.screen.main.dry_run"), centerX, 30, Texts.COLOR_WARN);
         } else {
             graphics.centeredText(this.font,
-                    Component.translatable("cleanmcmod.screen.main.subtitle"), centerX, 30, Texts.COLOR_INFO);
+                    Lang.text("cleanmcmod.screen.main.subtitle"), centerX, 30, Texts.COLOR_INFO);
         }
 
         CacheScan current = this.scan;
@@ -88,10 +88,10 @@ public class CleanMenuScreen extends Screen {
         int listBottom = this.height - 92;
         if (current == null || current.empty()) {
             graphics.centeredText(this.font,
-                    Component.translatable("cleanmcmod.screen.main.nothing_cached"), centerX, listTop + 6, Texts.COLOR_OK);
+                    Lang.text("cleanmcmod.screen.main.nothing_cached"), centerX, listTop + 6, Texts.COLOR_OK);
         } else {
             graphics.centeredText(this.font,
-                    Component.translatable("cleanmcmod.screen.main.summary",
+                    Lang.text("cleanmcmod.screen.main.summary",
                             current.presentCount(), Texts.bytes(current.bytes())),
                     centerX, 40, 0xFFFFFFFF);
             renderTargets(graphics, current, listTop, listBottom);
@@ -99,10 +99,10 @@ public class CleanMenuScreen extends Screen {
 
         if (service.isRunning()) {
             graphics.centeredText(this.font,
-                    Component.translatable("cleanmcmod.screen.main.running"), centerX, listBottom + 4, Texts.COLOR_WARN);
+                    Lang.text("cleanmcmod.screen.main.running"), centerX, listBottom + 4, Texts.COLOR_WARN);
         } else {
             graphics.centeredText(this.font,
-                    Component.translatable("cleanmcmod.screen.main.hint"), centerX, listBottom + 4, Texts.COLOR_INFO);
+                    Lang.text("cleanmcmod.screen.main.hint"), centerX, listBottom + 4, Texts.COLOR_INFO);
         }
     }
 
@@ -136,7 +136,7 @@ public class CleanMenuScreen extends Screen {
 
         int hidden = present.size() - maxRows;
         if (hidden > 0) {
-            graphics.text(this.font, Component.translatable("cleanmcmod.screen.main.more", hidden),
+            graphics.text(this.font, Lang.text("cleanmcmod.screen.main.more", hidden),
                     left, y, Texts.COLOR_INFO, false);
         }
     }

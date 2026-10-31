@@ -17,7 +17,7 @@ public class ConfirmInstallScreen extends Screen {
     private final List<ModUpdate> updates;
 
     public ConfirmInstallScreen(Screen parent, ModUpdaterService service, List<ModUpdate> updates) {
-        super(Component.translatable("cleanmcmod.screen.confirm.title"));
+        super(Lang.text("cleanmcmod.screen.confirm.title"));
         this.parent = parent;
         this.service = service;
         this.updates = List.copyOf(updates);
@@ -26,13 +26,13 @@ public class ConfirmInstallScreen extends Screen {
     @Override
     protected void init() {
         int centerX = this.width / 2;
-        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.install"), button -> {
+        this.addRenderableWidget(Button.builder(Lang.text("cleanmcmod.button.install"), button -> {
                     service.installAsync(updates);
                     this.minecraft.setScreenAndShow(this.parent);
                 })
                 .bounds(centerX - 154, this.height - 50, 150, 20)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> this.onClose())
+        this.addRenderableWidget(Button.builder(Lang.text("gui.cancel"), button -> this.onClose())
                 .bounds(centerX + 4, this.height - 50, 150, 20)
                 .build());
     }
@@ -43,12 +43,12 @@ public class ConfirmInstallScreen extends Screen {
         int centerX = this.width / 2;
         graphics.centeredText(this.font, this.title, centerX, 28, 0xFFFFFFFF);
         graphics.centeredText(this.font,
-                Component.translatable(updates.size() == 1
+                Lang.text(updates.size() == 1
                                 ? "cleanmcmod.screen.confirm.body.one"
                                 : "cleanmcmod.screen.confirm.body",
                         updates.size()), centerX, 50, Texts.COLOR_INFO);
         graphics.centeredText(this.font,
-                Component.translatable("cleanmcmod.screen.confirm.warning"), centerX, 66, Texts.COLOR_WARN);
+                Lang.text("cleanmcmod.screen.confirm.warning"), centerX, 66, Texts.COLOR_WARN);
 
         int y = 90;
         for (ModUpdate update : updates) {
@@ -56,7 +56,7 @@ public class ConfirmInstallScreen extends Screen {
                 break;
             }
             Component line = Component.literal(update.displayName() + "  ")
-                    .append(Component.translatable("cleanmcmod.screen.updates.versions",
+                    .append(Lang.text("cleanmcmod.screen.updates.versions",
                             update.installedVersion(), update.availableVersion()));
             graphics.centeredText(this.font,
                     Component.literal(this.font.plainSubstrByWidth(line.getString(), this.width - 40)), centerX, y, 0xFFFFFFFF);

@@ -71,7 +71,7 @@ public class CacheSettingsScreen extends Screen {
     private Row hovered;
 
     public CacheSettingsScreen(Screen parent, CleanMcModService service) {
-        super(Component.translatable("cleanmcmod.screen.settings.title"));
+        super(Lang.text("cleanmcmod.screen.settings.title"));
         this.parent = parent;
         this.service = service;
     }
@@ -83,7 +83,7 @@ public class CacheSettingsScreen extends Screen {
         this.headers.clear();
 
         this.search = new EditBox(this.font, MARGIN, CONTENT_TOP - 26, Math.min(220, this.width / 2), 20,
-                Component.translatable("cleanmcmod.settings.search"));
+                Lang.text("cleanmcmod.settings.search"));
         this.search.setValue(this.filter);
         this.search.setResponder(text -> {
             this.filter = text == null ? "" : text;
@@ -102,8 +102,13 @@ public class CacheSettingsScreen extends Screen {
                         })
                         .bounds(this.width - MARGIN - CONTROL_WIDTH, CONTENT_TOP, CONTROL_WIDTH, 18)
                         .build();
-                case LANGUAGE -> Button.builder(Component.translatable("cleanmcmod.button.change"),
-                                pressed -> openLanguages())
+                case LANGUAGE -> Button.builder(languageLabel(), pressed -> {
+                            String next = Lang.next(service.config().language);
+                            service.config().language = next;
+                            Lang.select(next);
+                            service.saveConfig();
+                            pressed.setMessage(languageLabel());
+                        })
                         .bounds(this.width - MARGIN - CONTROL_WIDTH, CONTENT_TOP, CONTROL_WIDTH, 18)
                         .build();
                 case INFO -> null;
@@ -114,11 +119,11 @@ public class CacheSettingsScreen extends Screen {
             }
         }
 
-        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.settings.reset"),
+        this.addRenderableWidget(Button.builder(Lang.text("cleanmcmod.settings.reset"),
                         button -> resetAll())
                 .bounds(MARGIN, this.height - 30, 92, 20)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.done"),
+        this.addRenderableWidget(Button.builder(Lang.text("gui.done"),
                         button -> this.onClose())
                 .bounds(this.width - MARGIN - 92, this.height - 30, 92, 20)
                 .build());
@@ -127,9 +132,13 @@ public class CacheSettingsScreen extends Screen {
     }
 
     /** The game's own language selector: it already owns options.txt and the resource reload. */
-    private void openLanguages() {
-        this.minecraft.setScreenAndShow(new LanguageSelectScreen(this, this.minecraft.options,
-                this.minecraft.getLanguageManager()));
+    /**
+     * The label of the language control: the name the chosen language calls itself, or the game
+     * language entry. Minecraft has no per-mod language, so this switches our own table only.
+     */
+    private Component languageLabel() {
+        String name = Lang.name(service.config().language);
+        return name == null ? Lang.text("cleanmcmod.settings.language.auto") : Component.literal(name);
     }
 
     @Override
@@ -147,7 +156,7 @@ public class CacheSettingsScreen extends Screen {
             if (y < CONTENT_TOP - HEADER_HEIGHT || y >= bottom) {
                 continue;
             }
-            graphics.text(this.font, Component.translatable(header.getKey()), MARGIN, y + 6,
+            graphics.text(this.font, Lang.text(header.getKey()), MARGIN, y + 6,
                     Texts.COLOR_OK, false);
             graphics.fill(MARGIN, y + 17, contentRight, y + 18, 0x33FFFFFF);
         }
@@ -169,13 +178,11 @@ public class CacheSettingsScreen extends Screen {
             }
             boolean modified = row.entry.kind() == Kind.TOGGLE
                     && row.entry.getter().get() != row.entry.defaultValue();
-            Component label = Component.translatable(row.entry.labelKey());
+            Component label = Lang.text(row.entry.labelKey());
             Component name = modified ? Component.literal("● ").append(label) : label;
             graphics.text(this.font, name, MARGIN + 4, y + 5, 0xFFFFFFFF, false);
 
-            Component detail = row.entry.kind() == Kind.LANGUAGE
-                    ? Component.translatable("language.name")
-                    : measure(row.entry);
+            Component detail = row.entry.kind() == Kind.INFO ? null : measure(row.entry);
             if (detail != null) {
                 int width = this.font.width(detail);
                 int limit = this.width - MARGIN - CONTROL_WIDTH - 10;
@@ -199,26 +206,26 @@ public class CacheSettingsScreen extends Screen {
     }
 
     private Component info(Entry entry) {
-        return Component.translatable(entry.labelKey(), version());
+        return Lang.text(entry.labelKey(), version());
     }
 
     private void renderExplanationValue(GuiGraphicsExtractor graphics) {
         Component line;
         int color = Texts.COLOR_INFO;
         if (this.hovered == null || this.hovered.entry.kind() == Kind.INFO) {
-            line = Component.translatable("cleanmcmod.screen.settings.intro");
+            line = Lang.text("cleanmcmod.screen.settings.intro");
         } else if (this.hovered.entry.kind() == Kind.LANGUAGE) {
-            line = Component.translatable("cleanmcmod.settings.language.hint");
+            line = Lang.text("cleanmcmod.settings.language.hint");
         } else {
             Entry option = this.hovered.entry;
-            Component label = Component.translatable(option.labelKey());
+            Component label = Lang.text(option.labelKey());
             List<CacheTarget> targets = targetsFor(option);
             if (targets.isEmpty()) {
-                line = Component.translatable("cleanmcmod.settings.explain", label,
-                        Component.translatable("cleanmcmod.screen.settings.intro"));
+                line = Lang.text("cleanmcmod.settings.explain", label,
+                        Lang.text("cleanmcmod.screen.settings.intro"));
             } else {
-                line = Component.translatable("cleanmcmod.settings.explain", label,
-                        Component.translatable(targets.get(0).safety().translationKey()));
+                line = Lang.text("cleanmcmod.settings.explain", label,
+                        Lang.text(targets.get(0).safety().translationKey()));
                 color = Texts.COLOR_OK;
             }
         }
@@ -264,7 +271,7 @@ public class CacheSettingsScreen extends Screen {
                 row.button.setY(y + 2);
                 row.button.setMessage(row.entry.kind() == Kind.TOGGLE
                         ? stateLabel(row.entry)
-                        : Component.translatable("cleanmcmod.button.change"));
+                        : languageLabel());
                 row.button.visible = row.visible;
             }
             y += ROW_HEIGHT;
@@ -281,13 +288,13 @@ public class CacheSettingsScreen extends Screen {
             return true;
         }
         String needle = this.filter.trim().toLowerCase(Locale.ROOT);
-        return Component.translatable(entry.labelKey()).getString().toLowerCase(Locale.ROOT).contains(needle);
+        return Lang.text(entry.labelKey()).getString().toLowerCase(Locale.ROOT).contains(needle);
     }
 
     private Component stateLabel(Entry option) {
         return option.getter().get()
-                ? Component.translatable("cleanmcmod.settings.on")
-                : Component.translatable("cleanmcmod.settings.off");
+                ? Lang.text("cleanmcmod.settings.on")
+                : Lang.text("cleanmcmod.settings.off");
     }
 
     /** Files and bytes the option would free, from the scan taken when the screen opened. */
@@ -306,7 +313,7 @@ public class CacheSettingsScreen extends Screen {
             bytes += state.bytes();
         }
         if (files == 0) {
-            return Component.translatable("cleanmcmod.status.missing");
+            return Lang.text("cleanmcmod.status.missing");
         }
         return Component.literal(files + " · " + piboh.cleanmc.mod.clean.CleanReport.formatBytes(bytes));
     }
