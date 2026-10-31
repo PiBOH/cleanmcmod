@@ -11,13 +11,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
 
 /**
  * Update checks and installs, off the render thread.
  *
  * <p>The screen reads {@link #snapshot()} while it renders, so network work never touches the
  * client thread: {@code snapshot} is only replaced from the worker, and each value is immutable.
- * Nothing here runs on its own — a check needs a button, an install needs a confirmation.</p>
+ * Nothing here runs on its own: a check needs a button, an install needs a confirmation.</p>
+ *
+ * <p>Progress is reported as done/total steps the service can actually count, never as a timer, so
+ * the bar the screen draws shows real work.</p>
  */
 public final class ModUpdaterService {
 
@@ -34,20 +38,44 @@ public final class ModUpdaterService {
             List<ModUpdate> updates,
             String error,
             List<ModInstaller.Outcome> outcomes,
-            int scannedMods) {
+            int scannedMods,
+            int progressDone,
+            int progressTotal) {
 
         public Snapshot {
             updates = List.copyOf(updates);
             outcomes = List.copyOf(outcomes);
         }
 
+        public Snapshot(State state, List<ModUpdate> updates, String error,
+                List<ModInstaller.Outcome> outcomes, int scannedMods) {
+            this(state, updates, error, outcomes, scannedMods, 0, 0);
+        }
+
         public boolean busy() {
             return state == State.CHECKING || state == State.INSTALLING;
+        }
+
+        /** 0 to 1, or 0 when the work in progress has no measurable steps yet. */
+        public float progress() {
+            if (progressTotal <= 0) {
+                return 0f;
+            }
+            return Math.max(0f, Math.min(1f, (float) progressDone / progressTotal));
+        }
+
+        Snapshot withProgress(int done, int total) {
+            return new Snapshot(state, updates, error, outcomes, scannedMods, done, total);
         }
     }
 
     public interface Checker {
         List<ModUpdate> check(List<LocalMod> mods) throws IOException, InterruptedException;
+    }
+
+    /** A checker that can say how far it got, so the screen can draw a real progress bar. */
+    public interface ProgressAware {
+        void progressListener(BiConsumer<Integer, Integer> listener);
     }
 
     /** Download metadata for one dependency, already limited to this game version and loader. */
@@ -126,6 +154,14 @@ public final class ModUpdaterService {
             return;
         }
         snapshot = new Snapshot(State.CHECKING, snapshot.updates(), null, List.of(), snapshot.scannedMods());
+        if (checker instanceof ProgressAware aware) {
+            aware.progressListener((done, total) -> {
+                Snapshot current = snapshot;
+                if (current.state() == State.CHECKING) {
+                    snapshot = current.withProgress(done, total);
+                }
+            });
+        }
         executor.submit(() -> {
             try {
                 List<LocalMod> mods = scanner.scan(gameDir);
@@ -141,14 +177,15 @@ public final class ModUpdaterService {
 
     public void installAsync(List<ModUpdate> updates) {
         if (delegated) {
-            CleanMcMod.LOGGER.info("Mod Menu Updater is installed — leaving the install to it");
+            CleanMcMod.LOGGER.info("Mod Menu Updater is installed: leaving the install to it");
             return;
         }
         if (snapshot.busy() || updates.isEmpty()) {
             return;
         }
         List<ModUpdate> requested = List.copyOf(updates);
-        snapshot = new Snapshot(State.INSTALLING, snapshot.updates(), null, List.of(), snapshot.scannedMods());
+        snapshot = new Snapshot(State.INSTALLING, snapshot.updates(), null, List.of(),
+                snapshot.scannedMods()).withProgress(0, requested.size());
         executor.submit(() -> {
             List<ModInstaller.Outcome> outcomes = new ArrayList<>(requested.size());
             List<ModUpdate> installable = new ArrayList<>(requested.size());
@@ -164,6 +201,7 @@ public final class ModUpdaterService {
                     CleanMcMod.LOGGER.info("Skipped {} {}: {}", update.displayName(),
                             update.availableVersion(), update.verdict().reason());
                     outcomes.add(new ModInstaller.Outcome(update, false, update.verdict().reason()));
+                    snapshot = snapshot.withProgress(outcomes.size(), requested.size());
                     continue;
                 }
                 List<ModVersion> resolved = resolveMissing(update, installed, dependencies);
@@ -171,6 +209,7 @@ public final class ModUpdaterService {
                     CleanMcMod.LOGGER.info("Skipped {} {}: {}", update.displayName(),
                             update.availableVersion(), update.verdict().reason());
                     outcomes.add(new ModInstaller.Outcome(update, false, update.verdict().reason()));
+                    snapshot = snapshot.withProgress(outcomes.size(), requested.size());
                     continue;
                 }
                 dependencies.addAll(resolved);
@@ -187,6 +226,7 @@ public final class ModUpdaterService {
                 if (batch.stream().allMatch(ModInstaller.Outcome::success)) {
                     retireReplaced(installable, dependencies);
                 }
+                snapshot = snapshot.withProgress(outcomes.size(), requested.size());
             }
             CleanMcMod.LOGGER.info("Mod update install finished: {}/{} installed",
                     outcomes.stream().filter(ModInstaller.Outcome::success).count(), outcomes.size());
@@ -203,7 +243,7 @@ public final class ModUpdaterService {
     }
 
     /**
-     * Deletes the dependency jars the batch just replaced — and only those: a dependency whose
+     * Deletes the dependency jars the batch just replaced, and only those: a dependency whose
      * resolved build was already installed is not downloaded, so its jar must stay put.
      */
     private void retireReplaced(List<ModUpdate> installed, List<ModVersion> fetched) {
