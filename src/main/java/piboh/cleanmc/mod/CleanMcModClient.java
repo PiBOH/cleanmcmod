@@ -3,6 +3,7 @@ package piboh.cleanmc.mod;
 import piboh.cleanmc.mod.clean.CleanMcModService;
 import piboh.cleanmc.mod.command.CleanMcModCommand;
 import piboh.cleanmc.mod.ui.CleanMenuScreen;
+import piboh.cleanmc.mod.ui.Lang;
 import piboh.cleanmc.mod.ui.MenuKey;
 import piboh.cleanmc.mod.ui.ModUpdatesScreen;
 import piboh.cleanmc.mod.update.ModrinthClient;
@@ -71,6 +72,8 @@ public final class CleanMcModClient implements ClientModInitializer {
         // whole previous session, so the install could not delete them while the game ran.
         PendingRemovals.run(configDir);
         service = new CleanMcModService(gameDir, configDir);
+        // The mod's own language, which is not the game's: see Lang.
+        Lang.select(service.config().language);
 
         String gameVersion = FabricLoader.getInstance().getModContainer("minecraft")
                 .map(container -> container.getMetadata().getVersion().getFriendlyString())
