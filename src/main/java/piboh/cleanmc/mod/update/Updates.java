@@ -1,8 +1,11 @@
 package piboh.cleanmc.mod.update;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +50,30 @@ public final class Updates {
                     .ifPresent(updates::add);
         }
         return List.copyOf(updates);
+    }
+
+    /**
+     * One row per installed jar when several sources each know the same mod: the highest published
+     * version wins, and at the same version the source earlier in {@link ModSource} wins, so an
+     * update that carries a published checksum is preferred.
+     */
+    public static List<ModUpdate> bestPerMod(List<ModUpdate> candidates) {
+        Map<Path, ModUpdate> best = new LinkedHashMap<>();
+        for (ModUpdate candidate : candidates) {
+            ModUpdate current = best.get(candidate.local().path());
+            if (current == null) {
+                best.put(candidate.local().path(), candidate);
+                continue;
+            }
+            int compare = VersionComparator.compare(candidate.availableVersion(), current.availableVersion());
+            if (compare > 0 || (compare == 0
+                    && candidate.candidate().source().prefers(current.candidate().source()))) {
+                best.put(candidate.local().path(), candidate);
+            }
+        }
+        List<ModUpdate> result = new ArrayList<>(best.values());
+        result.sort(Comparator.comparing(ModUpdate::displayName, String.CASE_INSENSITIVE_ORDER));
+        return List.copyOf(result);
     }
 
     static Optional<ModUpdate> decide(

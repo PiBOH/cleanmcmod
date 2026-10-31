@@ -53,10 +53,10 @@ public final class ModInstaller {
         // resolved for the mod too: the same build is one jar, downloaded once.
         Map<String, ModVersion> unique = new LinkedHashMap<>();
         for (ModVersion version : dependencies) {
-            unique.putIfAbsent(version.sha1(), version);
+            unique.putIfAbsent(version.fileKey(), version);
         }
         for (ModUpdate update : updates) {
-            unique.putIfAbsent(update.candidate().sha1(), update.candidate());
+            unique.putIfAbsent(update.candidate().fileKey(), update.candidate());
         }
         List<ModVersion> jars = new ArrayList<>(unique.values());
 
@@ -70,9 +70,7 @@ public final class ModInstaller {
                 Path temp = Files.createTempFile(modsDir, ".cleanmcmod-", ".tmp");
                 prepared.add(new Prepared(version, temp));
                 downloader.download(version.downloadUrl(), temp);
-                if (!ModScanner.sha1(temp).equalsIgnoreCase(version.sha1())) {
-                    throw new IOException("downloaded file does not match the published checksum");
-                }
+                verify(version, temp);
             }
         } catch (IOException | RuntimeException e) {
             discard(prepared);
@@ -158,7 +156,8 @@ public final class ModInstaller {
             downloader.download(update.candidate().downloadUrl(), temp);
 
             String actual = ModScanner.sha1(temp);
-            if (!actual.equalsIgnoreCase(update.candidate().sha1())) {
+            if (update.candidate().checksummed()
+                    && !actual.equalsIgnoreCase(update.candidate().sha1())) {
                 throw new IOException("downloaded file does not match the published checksum");
             }
 
@@ -203,6 +202,21 @@ public final class ModInstaller {
                 }
             }
             return new Outcome(update, false, message(e));
+        }
+    }
+
+    /**
+     * Checks a download against the hash its source publishes. CurseForge and GitHub publish none,
+     * so those jars are accepted unverified — and that is logged, never silently pretended.
+     */
+    private static void verify(ModVersion version, Path temp) throws IOException {
+        if (!version.checksummed()) {
+            CleanMcMod.LOGGER.info("{} publishes no checksum for {}; installed unverified",
+                    version.source(), version.fileName());
+            return;
+        }
+        if (!ModScanner.sha1(temp).equalsIgnoreCase(version.sha1())) {
+            throw new IOException("downloaded file does not match the published checksum");
         }
     }
 

@@ -14,9 +14,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Everything the Mod Updates screen draws and decides. The concrete
- * {@code ModUpdatesScreen} stays a separate class so the click handling of one
- * input API can change without touching the layout.
+ * Everything the Mod Updates screen draws and decides. The concrete {@code ModUpdatesScreen} stays a
+ * separate class so the click handling of one input API can change without touching the layout.
+ *
+ * <p>Click a row to select it, then install the selection or everything. When Mod Menu Updater is
+ * installed this screen lists what is outdated and hands the install step over to it.</p>
  */
 public abstract class AbstractUpdatesScreen extends Screen {
 
@@ -44,14 +46,18 @@ public abstract class AbstractUpdatesScreen extends Screen {
             service.checkAsync();
         }
         int centerX = this.width / 2;
-        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.install_selected"),
-                        button -> installSelected())
-                .bounds(centerX - 154, this.height - 50, 150, 20)
-                .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.install_all"),
-                        button -> installAll())
-                .bounds(centerX + 4, this.height - 50, 150, 20)
-                .build());
+        if (!service.delegated()) {
+            this.addRenderableWidget(Button.builder(
+                            Component.translatable("cleanmcmod.button.install_selected"),
+                            button -> installSelected())
+                    .bounds(centerX - 154, this.height - 50, 150, 20)
+                    .build());
+            this.addRenderableWidget(Button.builder(
+                            Component.translatable("cleanmcmod.button.install_all"),
+                            button -> installAll())
+                    .bounds(centerX + 4, this.height - 50, 150, 20)
+                    .build());
+        }
         this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.refresh"),
                         button -> {
                             selected.clear();
@@ -96,15 +102,20 @@ public abstract class AbstractUpdatesScreen extends Screen {
         int centerX = this.width / 2;
         graphics.centeredText(this.font, this.title, centerX, 16, 0xFFFFFFFF);
 
+        if (service.delegated()) {
+            graphics.centeredText(this.font, trimmed(Component.translatable("cleanmcmod.screen.updates.delegated")),
+                    centerX, 30, Texts.COLOR_WARN);
+        }
+
         switch (snapshot.state()) {
             case CHECKING -> graphics.centeredText(this.font,
-                    Component.translatable("cleanmcmod.screen.updates.checking"), centerX, 34, Texts.COLOR_WARN);
+                    Component.translatable("cleanmcmod.screen.updates.checking"), centerX, 42, Texts.COLOR_WARN);
             case INSTALLING -> graphics.centeredText(this.font,
-                    Component.translatable("cleanmcmod.screen.updates.installing"), centerX, 34, Texts.COLOR_WARN);
+                    Component.translatable("cleanmcmod.screen.updates.installing"), centerX, 42, Texts.COLOR_WARN);
             case FAILED -> graphics.centeredText(this.font,
                     trimmed(Component.translatable("cleanmcmod.screen.updates.failed",
                             snapshot.error() == null ? "" : snapshot.error())),
-                    centerX, 34, Texts.COLOR_ERROR);
+                    centerX, 42, Texts.COLOR_ERROR);
             case IDLE, READY -> {
                 if (!snapshot.busy() && shown.isEmpty()) {
                     Component message = snapshot.scannedMods() == 0
@@ -113,7 +124,8 @@ public abstract class AbstractUpdatesScreen extends Screen {
                     graphics.centeredText(this.font, message, centerX, LIST_TOP + 10, Texts.COLOR_OK);
                 } else {
                     graphics.centeredText(this.font,
-                            Component.translatable("cleanmcmod.screen.updates.found", shown.size()), centerX, 34, 0xFFFFFFFF);
+                            Component.translatable("cleanmcmod.screen.updates.found", shown.size()), centerX, 42,
+                            0xFFFFFFFF);
                     renderList(graphics, snapshot, mouseX, mouseY);
                 }
             }
@@ -122,7 +134,8 @@ public abstract class AbstractUpdatesScreen extends Screen {
         renderOutcomes(graphics, snapshot);
     }
 
-    private void renderList(GuiGraphicsExtractor graphics, ModUpdaterService.Snapshot snapshot, int mouseX, int mouseY) {
+    private void renderList(GuiGraphicsExtractor graphics, ModUpdaterService.Snapshot snapshot, int mouseX,
+            int mouseY) {
         int listBottom = this.height - BOTTOM_RESERVED;
         int rows = Math.max(1, (listBottom - LIST_TOP) / ROW_HEIGHT);
         int first = (int) (scroll / ROW_HEIGHT);
@@ -150,17 +163,21 @@ public abstract class AbstractUpdatesScreen extends Screen {
             int versionWidth = this.font.width(versions);
             int nameRoom = centerX + LIST_SIDE - 4 - versionWidth - 6 - (centerX - LIST_SIDE + 4);
             String marker = blocked ? (resolvable ? "＋ " : "⚠ ") : (isSelected ? "▸ " : "  ");
-            String name = this.font.plainSubstrByWidth(marker + update.displayName(),
+            String source = "[" + update.candidate().source().tag() + "] ";
+            String name = this.font.plainSubstrByWidth(marker + source + update.displayName(),
                     Math.max(40, nameRoom));
             int nameColor = resolvable ? Texts.COLOR_WARN
                     : blocked ? Texts.COLOR_ERROR : (isSelected ? Texts.COLOR_OK : 0xFFFFFFFF);
             graphics.text(this.font, Component.literal(name), centerX - LIST_SIDE + 4, y, nameColor, false);
             graphics.text(this.font, versions, centerX + LIST_SIDE - versionWidth - 4, y, Texts.COLOR_INFO, false);
             if (mouseX >= centerX - LIST_SIDE && mouseX <= centerX + LIST_SIDE
-                    && mouseY >= y && mouseY < y + ROW_HEIGHT && update.reason() != null) {
-                graphics.setComponentTooltipForNextFrame(this.font,
-                        List.of(Component.literal(this.font.plainSubstrByWidth(update.reason(), 220))),
-                        mouseX, mouseY);
+                    && mouseY >= y && mouseY < y + ROW_HEIGHT) {
+                List<Component> tooltip = new ArrayList<>(2);
+                tooltip.add(Texts.source(update.candidate().source()));
+                if (update.reason() != null) {
+                    tooltip.add(Component.literal(this.font.plainSubstrByWidth(update.reason(), 220)));
+                }
+                graphics.setComponentTooltipForNextFrame(this.font, tooltip, mouseX, mouseY);
             }
             y += ROW_HEIGHT;
         }
@@ -168,7 +185,8 @@ public abstract class AbstractUpdatesScreen extends Screen {
         // The outcome lines own the band right below the list; the hint would collide with them.
         if (shown.size() > rows && snapshot.outcomes().isEmpty()) {
             graphics.centeredText(this.font,
-                    Component.translatable("cleanmcmod.screen.updates.scroll"), centerX, listBottom + 4, Texts.COLOR_INFO);
+                    Component.translatable("cleanmcmod.screen.updates.scroll"), centerX, listBottom + 4,
+                    Texts.COLOR_INFO);
         }
     }
 

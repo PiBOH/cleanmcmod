@@ -51,6 +51,14 @@ public final class CacheTargets {
                     "assets/objects"));
         }
 
+        if (config.includeMapCaches) {
+            for (CacheTarget candidate : MapCaches.detect(root)) {
+                if (!isCovered(targets, candidate.path())) {
+                    targets.add(candidate);
+                }
+            }
+        }
+
         if (config.autoDetect) {
             for (CacheTarget candidate : detector.detect(root)) {
                 if (!isCovered(targets, candidate.path())) {
