@@ -23,6 +23,7 @@ class SameBuildTest {
         assertTrue(VersionComparator.sameBuild("3.0.1+26.3", "3.0.1", "26.3"));
         assertTrue(VersionComparator.sameBuild("5.3.2-fabric", "5.3.2", "26.3"));
         assertTrue(VersionComparator.sameBuild("0.165.0+26.3", "0.165.0+26.3", "26.3"));
+        assertTrue(VersionComparator.sameBuild("8.72", "26.3.0-8.72", "26.3"));
     }
 
     @Test
