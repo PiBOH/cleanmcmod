@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
+import piboh.cleanmc.mod.ui.Lang;
 
 import java.util.HashMap;
 import java.util.List;
@@ -47,17 +48,17 @@ public final class CleanMcModCommand {
     }
 
     private static int help(FabricClientCommandSource source) {
-        source.sendFeedback(Text.translatable("cleanmcmod.command.help"));
+        source.sendFeedback(Lang.text("cleanmcmod.command.help"));
         return 1;
     }
 
     private static int scan(FabricClientCommandSource source) {
         CleanMcModService service = CleanMcModClient.service();
         CacheScan scan = service.scan();
-        source.sendFeedback(Text.translatable("cleanmcmod.command.scan.header",
+        source.sendFeedback(Lang.text("cleanmcmod.command.scan.header",
                 scan.presentCount(), scan.files(), CleanReport.formatBytes(scan.bytes())));
         if (scan.empty()) {
-            source.sendFeedback(Text.translatable("cleanmcmod.command.scan.empty"));
+            source.sendFeedback(Lang.text("cleanmcmod.command.scan.empty"));
             return 1;
         }
         for (TargetState state : scan.presentTargets()) {
@@ -71,11 +72,11 @@ public final class CleanMcModCommand {
     private static int clean(FabricClientCommandSource source) {
         CleanMcModService service = CleanMcModClient.service();
         if (service.isRunning()) {
-            source.sendFeedback(Text.translatable("cleanmcmod.command.running"));
+            source.sendFeedback(Lang.text("cleanmcmod.command.running"));
             return 0;
         }
         boolean dryRun = service.config().dryRun;
-        source.sendFeedback(Text.translatable(dryRun
+        source.sendFeedback(Lang.text(dryRun
                 ? "cleanmcmod.command.clean.started_dry"
                 : "cleanmcmod.command.clean.started"));
 
@@ -88,14 +89,14 @@ public final class CleanMcModCommand {
         MinecraftClient client = MinecraftClient.getInstance();
         service.cleanAsync().thenAccept(report -> client.execute(() -> {
             if (report == null) {
-                source.sendFeedback(Text.translatable("cleanmcmod.command.clean.failed"));
+                source.sendFeedback(Lang.text("cleanmcmod.command.clean.failed"));
                 return;
             }
             source.sendFeedback(report.dryRun()
-                    ? Text.translatable("cleanmcmod.command.clean.done_dry",
+                    ? Lang.text("cleanmcmod.command.clean.done_dry",
                             report.cleanedTargets(), report.filesPlanned(),
                             CleanReport.formatBytes(report.bytesPlanned()))
-                    : Text.translatable("cleanmcmod.command.clean.done",
+                    : Lang.text("cleanmcmod.command.clean.done",
                             report.cleanedTargets(), report.filesDeleted(),
                             CleanReport.formatBytes(report.bytesFreed())));
             for (TargetResult result : report.results()) {
