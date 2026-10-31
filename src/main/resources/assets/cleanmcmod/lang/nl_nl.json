@@ -2,6 +2,8 @@
   "cleanmcmod.about.creator": "Maker: PiBOH",
   "cleanmcmod.about.inspired": "Geïnspireerd door ModMenuUpdater, Sodium en Reese's Sodium Options",
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
+  "cleanmcmod.about.tagline": "Ruimt de caches op waardoor het spel verkeerd tekent en werkt je mods bij via Modrinth, CurseForge en GitHub.",
+  "cleanmcmod.about.client_only": "Alleen client: wordt nooit op een server geïnstalleerd.",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "Wijzigen...",
   "cleanmcmod.button.clean": "Nu opruimen",

@@ -2,6 +2,8 @@
   "cleanmcmod.about.creator": "作者: PiBOH",
   "cleanmcmod.about.inspired": "靈感來自 ModMenuUpdater、Sodium 與 Reese's Sodium Options",
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
+  "cleanmcmod.about.tagline": "清理導致遊戲繪製異常的快取，並從 Modrinth、CurseForge 與 GitHub 更新模組。",
+  "cleanmcmod.about.client_only": "僅客戶端：從不安裝到伺服器。",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "變更...",
   "cleanmcmod.button.clean": "立即清理",
