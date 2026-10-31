@@ -1,11 +1,15 @@
 package piboh.cleanmc.mod.update;
 
-/** Where an update is downloaded from. The order is also the tie-break order when two sources offer the same version. */
+/**
+ * Where an update is downloaded from. The order is also the preference order: when several sources
+ * offer the same version of a mod, the first one in this enum wins, so Modrinth is preferred over
+ * GitHub and GitHub over CurseForge.
+ */
 public enum ModSource {
 
     MODRINTH("cleanmcmod.source.modrinth", "MR"),
-    CURSEFORGE("cleanmcmod.source.curseforge", "CF"),
-    GITHUB("cleanmcmod.source.github", "GH");
+    GITHUB("cleanmcmod.source.github", "GH"),
+    CURSEFORGE("cleanmcmod.source.curseforge", "CF");
 
     private final String translationKey;
     private final String tag;
