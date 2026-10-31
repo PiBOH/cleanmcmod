@@ -63,8 +63,10 @@ class UpdatesTest {
     }
 
     @Test
-    void rebuildOfTheSameVersionIsOffered() {
-        assertTrue(decide(version("v1", "0.5.9"), version("v2", "0.5.9")).isPresent());
+    void rebuildOfTheSameVersionIsNotOffered() {
+        // Sources spell a version their own way, and a row for a build that is already installed only
+        // ends with the installer trying to replace the jar the game has open.
+        assertTrue(decide(version("v1", "0.5.9"), version("v2", "0.5.9")).isEmpty());
     }
 
     @Test

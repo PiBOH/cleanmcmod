@@ -127,6 +127,15 @@ public final class Updates {
         if (VersionComparator.compare(candidate.versionNumber(), current.versionNumber()) < 0) {
             return Optional.empty();
         }
+        // The same build spelled differently by another source (AppleSkin is 3.0.10+mc26.3 on one
+        // and 26.3-3.0.10 on the other) is not an update: the row would ask the installer to replace
+        // the jar the game has open, and that cannot work on Windows.
+        String installed = mod.version() == null || mod.version().isBlank()
+                ? current.versionNumber()
+                : mod.version();
+        if (VersionComparator.sameBuild(installed, candidate.versionNumber(), gameVersion)) {
+            return Optional.empty();
+        }
         return Optional.of(new ModUpdate(mod, current, candidate, title));
     }
 }
