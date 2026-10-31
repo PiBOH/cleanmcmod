@@ -95,6 +95,7 @@ public final class ModUpdaterService {
     private final ExecutorService executor;
 
     private volatile Snapshot snapshot = new Snapshot(State.IDLE, List.of(), null, List.of(), 0);
+    private volatile String status;
 
     public ModUpdaterService(Path gameDir, Checker checker, ModInstaller.Downloader downloader) {
         this(gameDir, checker, downloader, NO_RESOLVER, false);
@@ -141,6 +142,14 @@ public final class ModUpdaterService {
     }
 
     /**
+     * The line the install is on right now: the jar being fetched, its size and the speed it came
+     * at. Null when nothing is running, so the screen never shows a stale line.
+     */
+    public String status() {
+        return status;
+    }
+
+    /**
      * True when Mod Menu Updater is installed. It adds updating to Mod Menu itself, so two updaters
      * writing the same folder is exactly the conflict this avoids: the screen shows its list, hands
      * the install step over, and {@link #installAsync} refuses.
@@ -184,6 +193,7 @@ public final class ModUpdaterService {
             return;
         }
         List<ModUpdate> requested = List.copyOf(updates);
+        status = null;
         snapshot = new Snapshot(State.INSTALLING, snapshot.updates(), null, List.of(),
                 snapshot.scannedMods()).withProgress(0, requested.size());
         executor.submit(() -> {
@@ -222,7 +232,7 @@ public final class ModUpdaterService {
             }
             if (!installable.isEmpty()) {
                 List<ModInstaller.Outcome> batch = installer.installTogether(installable, dependencies,
-                        downloader);
+                        downloader, line -> status = line);
                 outcomes.addAll(batch);
                 if (batch.stream().allMatch(ModInstaller.Outcome::success)) {
                     retireReplaced(installable, dependencies);
@@ -231,6 +241,7 @@ public final class ModUpdaterService {
             }
             CleanMcMod.LOGGER.info("Mod update install finished: {}/{} installed",
                     outcomes.stream().filter(ModInstaller.Outcome::success).count(), outcomes.size());
+            status = null;
 
             try {
                 List<LocalMod> mods = scanner.scan(gameDir);

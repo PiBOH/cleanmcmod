@@ -23,11 +23,11 @@ public final class Texts {
     public static Text targetName(piboh.cleanmc.mod.clean.CacheTarget target) {
         return target.label() != null
                 ? Text.literal(target.label())
-                : Text.translatable(target.translationKey());
+                : Lang.text(target.translationKey());
     }
 
     public static Text status(piboh.cleanmc.mod.clean.TargetResult result) {
-        return Text.translatable("cleanmcmod.status." + result.status().name().toLowerCase(java.util.Locale.ROOT));
+        return Lang.text("cleanmcmod.status." + result.status().name().toLowerCase(java.util.Locale.ROOT));
     }
 
     public static int statusColor(piboh.cleanmc.mod.clean.TargetResult result) {
@@ -46,7 +46,7 @@ public final class Texts {
 
     /** The name of the source an update comes from, for the row tag and its tooltip. */
     public static Text source(ModSource source) {
-        return Text.translatable(source.translationKey());
+        return Lang.text(source.translationKey());
     }
 
     /** The colour of the source tag, so the row says at a glance where the jar comes from. */

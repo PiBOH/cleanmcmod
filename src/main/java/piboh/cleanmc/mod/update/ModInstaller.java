@@ -9,7 +9,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Writes a downloaded update into {@code mods/} without ever losing the working jar.
@@ -55,6 +57,16 @@ public final class ModInstaller {
      */
     public List<Outcome> installTogether(List<ModUpdate> updates, List<ModVersion> dependencies,
             Downloader downloader) {
+        return installTogether(updates, dependencies, downloader, line -> {
+        });
+    }
+
+    /**
+     * @param status told which jar is being fetched and how fast it arrived, so the screen can show
+     *               the work happening instead of a bar that sits still
+     */
+    public List<Outcome> installTogether(List<ModUpdate> updates, List<ModVersion> dependencies,
+            Downloader downloader, Consumer<String> status) {
         // A mod and its dependency can both be in the update list, and the dependency can be
         // resolved for the mod too: the same build is one jar, downloaded once.
         Map<String, ModVersion> unique = new LinkedHashMap<>();
@@ -77,7 +89,7 @@ public final class ModInstaller {
                 }
                 Path temp = Files.createTempFile(modsDir, ".cleanmcmod-", ".tmp");
                 try {
-                    fetch(downloader, version, temp);
+                    fetch(downloader, version, temp, status);
                     verify(version, temp);
                 } catch (IOException e) {
                     deleteQuietly(temp);
@@ -165,11 +177,16 @@ public final class ModInstaller {
      * failing the whole batch for. The reason names the file, so the alert can say which mod could
      * not be fetched instead of a bare "download failed".
      */
-    private static void fetch(Downloader downloader, ModVersion version, Path temp) throws IOException {
+    private static void fetch(Downloader downloader, ModVersion version, Path temp,
+            Consumer<String> status) throws IOException {
         IOException last = null;
         for (int attempt = 1; attempt <= 2; attempt++) {
+            status.accept(version.fileName());
+            long started = System.nanoTime();
             try {
                 downloader.download(version.downloadUrl(), temp);
+                status.accept(version.fileName() + " · "
+                        + describe(temp, (System.nanoTime() - started) / 1_000_000L));
                 return;
             } catch (IOException e) {
                 last = e;
@@ -267,6 +284,21 @@ public final class ModInstaller {
         if (!ModScanner.sha1(temp).equalsIgnoreCase(version.sha1())) {
             throw new IOException(version.fileName() + ": downloaded file does not match the published checksum");
         }
+    }
+
+    /** Size and speed of a finished download, as the one line the update screen prints. */
+    private static String describe(Path temp, long elapsedMillis) {
+        try {
+            long bytes = Files.size(temp);
+            long perSecond = bytes * 1000L / Math.max(1L, elapsedMillis);
+            return megabytes(bytes) + " MB · " + megabytes(perSecond) + " MB/s";
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    private static String megabytes(long bytes) {
+        return String.format(Locale.ROOT, "%.1f", bytes / (1024.0 * 1024.0));
     }
 
     private static void deleteQuietly(Path file) {

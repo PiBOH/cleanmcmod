@@ -20,7 +20,7 @@ public class UpdateResultScreen extends Screen {
     private final List<ModInstaller.Outcome> outcomes;
 
     public UpdateResultScreen(Screen parent, List<ModInstaller.Outcome> outcomes) {
-        super(Text.translatable("cleanmcmod.screen.updates.result.title"));
+        super(Lang.text("cleanmcmod.screen.updates.result.title"));
         this.parent = parent;
         this.outcomes = List.copyOf(outcomes);
     }
@@ -28,7 +28,7 @@ public class UpdateResultScreen extends Screen {
     @Override
     protected void init() {
         int centerX = this.width / 2;
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> this.close())
+        this.addDrawableChild(ButtonWidget.builder(Lang.text("gui.done"), button -> this.close())
                 .dimensions(centerX - 75, this.height - 32, 150, 20)
                 .build());
     }
@@ -41,7 +41,7 @@ public class UpdateResultScreen extends Screen {
 
         long ok = outcomes.stream().filter(ModInstaller.Outcome::success).count();
         context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.translatable("cleanmcmod.screen.updates.result.summary", ok, outcomes.size()),
+                Lang.text("cleanmcmod.screen.updates.result.summary", ok, outcomes.size()),
                 centerX, 42, ok == outcomes.size() ? Texts.COLOR_OK : Texts.COLOR_WARN);
 
         int y = 62;
@@ -49,7 +49,7 @@ public class UpdateResultScreen extends Screen {
         for (int index = 0; index < outcomes.size(); index++) {
             if (index >= room) {
                 context.drawCenteredTextWithShadow(this.textRenderer,
-                        Text.translatable("cleanmcmod.screen.updates.result.more", outcomes.size() - index),
+                        Lang.text("cleanmcmod.screen.updates.result.more", outcomes.size() - index),
                         centerX, y, Texts.COLOR_INFO);
                 break;
             }
@@ -57,15 +57,15 @@ public class UpdateResultScreen extends Screen {
             Text line;
             int color;
             if (!outcome.success()) {
-                line = Text.translatable("cleanmcmod.screen.updates.result.failed",
+                line = Lang.text("cleanmcmod.screen.updates.result.failed",
                         outcome.update().displayName(), outcome.detail());
                 color = Texts.COLOR_ERROR;
             } else if (outcome.detail() != null) {
-                line = Text.translatable("cleanmcmod.screen.updates.result.old_kept",
+                line = Lang.text("cleanmcmod.screen.updates.result.old_kept",
                         outcome.update().displayName(), outcome.detail());
                 color = Texts.COLOR_WARN;
             } else {
-                line = Text.translatable("cleanmcmod.screen.updates.result.ok",
+                line = Lang.text("cleanmcmod.screen.updates.result.ok",
                         outcome.update().displayName(), outcome.update().availableVersion());
                 color = Texts.COLOR_OK;
             }

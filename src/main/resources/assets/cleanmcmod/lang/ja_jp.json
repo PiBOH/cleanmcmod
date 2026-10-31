@@ -80,6 +80,7 @@
   "cleanmcmod.settings.explain": "%s: %s",
   "cleanmcmod.settings.language": "言語",
   "cleanmcmod.settings.language.hint": "ゲームの言語選択を開きます。",
+  "cleanmcmod.settings.language.auto": "ゲームの言語",
   "cleanmcmod.settings.off": "✘ オフ",
   "cleanmcmod.settings.on": "✔ オン",
   "cleanmcmod.settings.reset": "リセット",

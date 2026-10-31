@@ -318,9 +318,14 @@ Refactors happen only when a behaviour must change anyway.
 
 ## 12. What is not implemented (do not claim otherwise)
 
-- No mod hiding, no anti-cheat evasion, no server resource-pack bypass.
-- No Quilt-specific testing (the code is Fabric only; Quilt compatibility is
-  unproven).
+- No mod hiding, no anti-cheat evasion, no server resource-pack bypass.- **Quilt** is supported through Quilt's own Fabric compatibility: the jar is a Fabric mod, so it
+  loads there, and the update check asks `quilt` first when `quilt_loader` is present
+  (`List.of("quilt", "fabric")`, else the reverse). Keep that ordering: a Quilt-only build published
+  on Modrinth or CurseForge must win over the Fabric one. A required dependency on Fabric API counts as
+  platform-provided (`Compatibility.PLATFORM_PROJECTS`) because Quilt satisfies it through Quilted
+  Fabric API, so it is never downloaded on its own. This is
+  supported but **not tested in game on Quilt**: nothing here is verified beyond compiling and the
+  unit tests, and that must not be claimed otherwise.
 - Only the latest target (26.3) is tested in game. Every other version branch is
   provided **as is**: it compiles and its unit tests pass, and nothing more is
   promised for it.
