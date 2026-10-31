@@ -52,6 +52,19 @@ public final class VersionComparator {
         return compare(core(left, gameVersion), core(right, gameVersion)) == 0;
     }
 
+    /** True when the text carries a number: a release label without one is not a version. */
+    public static boolean hasNumber(String version) {
+        if (version == null) {
+            return false;
+        }
+        for (int i = 0; i < version.length(); i++) {
+            if (Character.isDigit(version.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The version without build metadata, game version and loader tokens. */
     static String core(String version, String gameVersion) {
         if (version == null) {
