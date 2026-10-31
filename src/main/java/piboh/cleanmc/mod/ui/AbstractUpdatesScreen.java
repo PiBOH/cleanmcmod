@@ -48,7 +48,7 @@ public abstract class AbstractUpdatesScreen extends Screen {
     private List<ModInstaller.Outcome> lastOutcomes = List.of();
 
     protected AbstractUpdatesScreen(Screen parent, ModUpdaterService service) {
-        super(Text.translatable("cleanmcmod.screen.updates.title"));
+        super(Lang.text("cleanmcmod.screen.updates.title"));
         this.parent = parent;
         this.service = service;
     }
@@ -61,11 +61,11 @@ public abstract class AbstractUpdatesScreen extends Screen {
         int centerX = this.width / 2;
         if (!service.delegated()) {
             this.downloadSelected = ButtonWidget.builder(
-                            Text.translatable("cleanmcmod.button.download_selected", 0),
+                            Lang.text("cleanmcmod.button.download_selected", 0),
                             button -> downloadSelected())
                     .dimensions(centerX - 154, this.height - 50, 150, 20)
                     .build();
-            this.downloadAll = ButtonWidget.builder(Text.translatable("cleanmcmod.button.download_all"),
+            this.downloadAll = ButtonWidget.builder(Lang.text("cleanmcmod.button.download_all"),
                             button -> downloadAll())
                     .dimensions(centerX + 4, this.height - 50, 150, 20)
                     .build();
@@ -85,7 +85,7 @@ public abstract class AbstractUpdatesScreen extends Screen {
             this.addDrawableChild(row);
         }
 
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("cleanmcmod.button.refresh"),
+        this.addDrawableChild(ButtonWidget.builder(Lang.text("cleanmcmod.button.refresh"),
                         button -> {
                             selected.clear();
                             scrollRows = 0;
@@ -95,7 +95,7 @@ public abstract class AbstractUpdatesScreen extends Screen {
                         })
                 .dimensions(centerX - 154, this.height - 26, 150, 20)
                 .build());
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("gui.done"), button -> this.close())
+        this.addDrawableChild(ButtonWidget.builder(Lang.text("gui.done"), button -> this.close())
                 .dimensions(centerX + 4, this.height - 26, 150, 20)
                 .build());
     }
@@ -167,29 +167,29 @@ public abstract class AbstractUpdatesScreen extends Screen {
 
         if (service.delegated()) {
             context.drawCenteredTextWithShadow(this.textRenderer,
-                    trimmed(Text.translatable("cleanmcmod.screen.updates.delegated")),
+                    trimmed(Lang.text("cleanmcmod.screen.updates.delegated")),
                     centerX, 28, Texts.COLOR_WARN);
         }
 
         switch (snapshot.state()) {
             case CHECKING -> context.drawCenteredTextWithShadow(this.textRenderer,
-                    Text.translatable("cleanmcmod.screen.updates.checking"), centerX, 40, Texts.COLOR_WARN);
+                    Lang.text("cleanmcmod.screen.updates.checking"), centerX, 40, Texts.COLOR_WARN);
             case INSTALLING -> context.drawCenteredTextWithShadow(this.textRenderer,
-                    Text.translatable("cleanmcmod.screen.updates.installing"), centerX, 40, Texts.COLOR_WARN);
+                    Lang.text("cleanmcmod.screen.updates.installing"), centerX, 40, Texts.COLOR_WARN);
             case FAILED -> context.drawCenteredTextWithShadow(this.textRenderer,
-                    trimmed(Text.translatable("cleanmcmod.screen.updates.failed",
+                    trimmed(Lang.text("cleanmcmod.screen.updates.failed",
                             snapshot.error() == null ? "" : snapshot.error())),
                     centerX, 40, Texts.COLOR_ERROR);
             case IDLE, READY -> {
                 if (!snapshot.busy() && shown.isEmpty()) {
                     Text message = snapshot.scannedMods() == 0
-                            ? Text.translatable("cleanmcmod.screen.updates.no_mods")
-                            : Text.translatable("cleanmcmod.screen.updates.up_to_date", snapshot.scannedMods());
+                            ? Lang.text("cleanmcmod.screen.updates.no_mods")
+                            : Lang.text("cleanmcmod.screen.updates.up_to_date", snapshot.scannedMods());
                     context.drawCenteredTextWithShadow(this.textRenderer, message, centerX, LIST_TOP + 10,
                             Texts.COLOR_OK);
                 } else {
                     context.drawCenteredTextWithShadow(this.textRenderer,
-                            Text.translatable("cleanmcmod.screen.updates.found", shown.size()), centerX, 40,
+                            Lang.text("cleanmcmod.screen.updates.found", shown.size()), centerX, 40,
                             0xFFFFFFFF);
                     renderList(context, mouseX, mouseY);
                 }
@@ -219,11 +219,18 @@ public abstract class AbstractUpdatesScreen extends Screen {
         context.drawCenteredTextWithShadow(this.textRenderer,
                 Text.literal(Math.round(shownProgress * 100) + "%"), this.width / 2, y + 10,
                 0xFFFFFFFF);
+        // What the worker is doing right now: the jar, its size and the speed it came at.
+        String status = service.status();
+        if (status != null && !status.isBlank()) {
+            context.drawCenteredTextWithShadow(this.textRenderer,
+                    Text.literal(this.textRenderer.trimToWidth(status, width)), this.width / 2, y + 22,
+                    Texts.COLOR_INFO);
+        }
     }
 
     private void updateButtons(ModUpdaterService.Snapshot snapshot) {
         if (this.downloadSelected != null) {
-            this.downloadSelected.setMessage(Text.translatable(
+            this.downloadSelected.setMessage(Lang.text(
                     "cleanmcmod.button.download_selected", selected.size()));
             this.downloadSelected.active = !selected.isEmpty() && !snapshot.busy();
         }
@@ -263,13 +270,13 @@ public abstract class AbstractUpdatesScreen extends Screen {
         int installedX = newX - VERSION_WIDTH;
         int nameX = left + NAME_LEFT;
 
-        context.drawText(this.textRenderer, Text.translatable("cleanmcmod.screen.updates.mod"),
+        context.drawText(this.textRenderer, Lang.text("cleanmcmod.screen.updates.mod"),
                 nameX, LIST_TOP - 12, Texts.COLOR_INFO, false);
-        context.drawText(this.textRenderer, Text.translatable("cleanmcmod.screen.updates.installed"),
+        context.drawText(this.textRenderer, Lang.text("cleanmcmod.screen.updates.installed"),
                 installedX, LIST_TOP - 12, Texts.COLOR_INFO, false);
-        context.drawText(this.textRenderer, Text.translatable("cleanmcmod.screen.updates.new"),
+        context.drawText(this.textRenderer, Lang.text("cleanmcmod.screen.updates.new"),
                 newX, LIST_TOP - 12, Texts.COLOR_INFO, false);
-        Text select = Text.translatable("cleanmcmod.screen.updates.select");
+        Text select = Lang.text("cleanmcmod.screen.updates.select");
         context.drawText(this.textRenderer, select, right - this.textRenderer.getWidth(select) - 2,
                 LIST_TOP - 12, Texts.COLOR_INFO, false);
         context.fill(left, LIST_TOP - 2, right, LIST_TOP - 1, 0x33FFFFFF);
@@ -351,7 +358,7 @@ public abstract class AbstractUpdatesScreen extends Screen {
         }
 
         context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.translatable("cleanmcmod.screen.updates.hint", selected.size()),
+                Lang.text("cleanmcmod.screen.updates.hint", selected.size()),
                 this.width / 2, this.height - BOTTOM_RESERVED + 4, Texts.COLOR_INFO);
     }
 

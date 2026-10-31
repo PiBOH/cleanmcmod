@@ -80,6 +80,7 @@
   "cleanmcmod.settings.explain": "%s: %s",
   "cleanmcmod.settings.language": "언어",
   "cleanmcmod.settings.language.hint": "게임의 언어 선택을 엽니다.",
+  "cleanmcmod.settings.language.auto": "게임 언어",
   "cleanmcmod.settings.off": "✘ 꺼짐",
   "cleanmcmod.settings.on": "✔ 켜짐",
   "cleanmcmod.settings.reset": "초기화",
