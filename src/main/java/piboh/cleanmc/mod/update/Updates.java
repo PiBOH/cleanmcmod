@@ -136,6 +136,12 @@ public final class Updates {
         if (VersionComparator.sameBuild(installed, candidate.versionNumber(), gameVersion)) {
             return Optional.empty();
         }
+        // A mirror with no version number at all publishes the target instead: "<26.3/fabric>" or
+        // "26.3-fabric" says which game and loader the file is for, never which build it is.
+        String candidateCore = VersionComparator.core(candidate.versionNumber(), gameVersion);
+        if (!VersionComparator.hasNumber(candidateCore)) {
+            return Optional.empty();
+        }
         return Optional.of(new ModUpdate(mod, current, candidate, title));
     }
 }
