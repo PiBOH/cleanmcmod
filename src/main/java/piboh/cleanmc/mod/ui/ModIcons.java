@@ -4,6 +4,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
+import piboh.cleanmc.mod.CleanMcMod;
 import piboh.cleanmc.mod.update.LocalMod;
 
 import java.io.InputStream;
@@ -61,17 +62,27 @@ public final class ModIcons {
                 return id;
             }
         } catch (Exception exception) {
+            // A jar whose icon cannot be decoded keeps its initial tile, and the reason is in the log
+            // instead of being swallowed.
+            CleanMcMod.LOGGER.warn("Could not read the icon of {}: {}", mod.fileName(), exception.toString());
             return null;
         }
     }
 
-    /** {@code assets/<modid>/icon.png} first, then the shortest {@code icon.png} the jar carries. */
+    /**
+     * {@code assets/<modid>/icon.png} first, then a root {@code icon.png} (Collective and other
+     * CurseForge mods ship it there), then the shortest {@code icon.png} under {@code assets/}.
+     */
     private static ZipEntry findIcon(ZipFile zip, String modId) {
         if (modId != null && !modId.isBlank()) {
             ZipEntry exact = zip.getEntry("assets/" + modId + "/icon.png");
             if (exact != null) {
                 return exact;
             }
+        }
+        ZipEntry root = zip.getEntry("icon.png");
+        if (root != null) {
+            return root;
         }
         ZipEntry best = null;
         Enumeration<? extends ZipEntry> entries = zip.entries();
