@@ -41,7 +41,7 @@ public class CleanMenuScreen extends Screen {
         this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.clean"), button -> service.cleanAsync())
                 .bounds(centerX - BUTTON_WIDTH - 2, buttonY, BUTTON_WIDTH, 20)
                 .build());
-        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.rescan"), button -> this.scan = service.scan())
+        this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.rescan"), button -> service.rescanAsync())
                 .bounds(centerX + 2, buttonY, BUTTON_WIDTH, 20)
                 .build());
         this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.update_mods"),
@@ -65,6 +65,11 @@ public class CleanMenuScreen extends Screen {
         if (report != shownReport) {
             shownReport = report;
             this.scan = service.lastScan() != null ? service.lastScan() : service.scan();
+        }
+        // A rescan and a clean both republish the measurement when they finish.
+        CacheScan latest = service.lastScan();
+        if (latest != null && latest != this.scan) {
+            this.scan = latest;
         }
 
         int centerX = this.width / 2;

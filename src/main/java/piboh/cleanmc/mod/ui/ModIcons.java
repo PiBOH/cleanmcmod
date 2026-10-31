@@ -26,6 +26,8 @@ import java.util.zip.ZipFile;
  */
 public final class ModIcons {
 
+    private static final int ICON_PIXELS = 12;
+
     private static final Map<Path, Identifier> CACHE = new HashMap<>();
     private static final Map<Path, Boolean> TRIED = new HashMap<>();
 
@@ -44,6 +46,11 @@ public final class ModIcons {
             CACHE.put(path, id);
         }
         return id;
+    }
+
+    /** The size a row draws the icon at, so the loader and the screen cannot disagree. */
+    public static int size() {
+        return ICON_PIXELS;
     }
 
     private static Identifier load(LocalMod mod) {
@@ -73,7 +80,7 @@ public final class ModIcons {
      * with a 16 pixel size samples its top left corner only, which is why every row looked blank.
      */
     private static NativeImage shrink(NativeImage source) {
-        int size = 16;
+        int size = ICON_PIXELS;
         if (source.getWidth() == size && source.getHeight() == size) {
             return source;
         }

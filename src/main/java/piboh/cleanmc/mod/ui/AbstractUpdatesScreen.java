@@ -29,9 +29,9 @@ public abstract class AbstractUpdatesScreen extends Screen {
     private static final int ROW_HEIGHT = 22;
     private static final int LIST_TOP = 68;
     private static final int BOTTOM_RESERVED = 62;
-    private static final int ICON = 16;
-    private static final int CHECK_WIDTH = 22;
-    private static final int VERSION_WIDTH = 92;
+    private static final int CHECK_WIDTH = 56;
+    private static final int VERSION_WIDTH = 88;
+    private static final int NAME_LEFT = 24;
 
     private final Screen parent;
     private final ModUpdaterService service;
@@ -252,11 +252,17 @@ public abstract class AbstractUpdatesScreen extends Screen {
         int checkX = right - CHECK_WIDTH;
         int newX = checkX - VERSION_WIDTH;
         int installedX = newX - VERSION_WIDTH;
+        int nameX = left + NAME_LEFT;
 
+        graphics.text(this.font, Component.translatable("cleanmcmod.screen.updates.mod"),
+                nameX, LIST_TOP - 12, Texts.COLOR_INFO, false);
         graphics.text(this.font, Component.translatable("cleanmcmod.screen.updates.installed"),
                 installedX, LIST_TOP - 12, Texts.COLOR_INFO, false);
         graphics.text(this.font, Component.translatable("cleanmcmod.screen.updates.new"),
                 newX, LIST_TOP - 12, Texts.COLOR_INFO, false);
+        Component select = Component.translatable("cleanmcmod.screen.updates.select");
+        graphics.text(this.font, select, right - this.font.width(select) - 2, LIST_TOP - 12,
+                Texts.COLOR_INFO, false);
         graphics.fill(left, LIST_TOP - 2, right, LIST_TOP - 1, 0x33FFFFFF);
 
         for (int index = 0; index < rowButtons.size(); index++) {
@@ -278,19 +284,18 @@ public abstract class AbstractUpdatesScreen extends Screen {
             graphics.fill(left, rowTop, left + 2, rowBottom, isSelected ? 0xFF55FF55 : 0xFF3A3A3A);
 
             Identifier icon = ModIcons.get(update.local());
-            int iconX = left + 6;
-            int iconY = rowTop + 3;
+            int iconSize = ModIcons.size();
+            int iconX = left + 8;
+            int iconY = rowTop + (rowBottom - rowTop - iconSize) / 2;
             if (icon != null) {
-                graphics.blit(icon, iconX, iconY, 0, 0, ICON, ICON, ICON, ICON);
+                graphics.blit(icon, iconX, iconY, 0, 0, iconSize, iconSize, iconSize, iconSize);
             } else {
-                graphics.fill(iconX, iconY, iconX + ICON, iconY + ICON, 0xFF2B2B2B);
+                graphics.fill(iconX, iconY, iconX + iconSize, iconY + iconSize, 0xFF2B2B2B);
                 String initial = update.displayName().isEmpty() ? "?"
                         : update.displayName().substring(0, 1).toUpperCase(Locale.ROOT);
-                graphics.centeredText(this.font, Component.literal(initial), iconX + ICON / 2, iconY + 4,
+                graphics.centeredText(this.font, Component.literal(initial), iconX + iconSize / 2, iconY + 2,
                         Texts.COLOR_INFO);
             }
-
-            int nameX = iconX + ICON + 5;
             int nameRoom = Math.max(40, installedX - nameX - 8);
             String tag = "[" + update.candidate().source().tag() + "]";
             int tagWidth = this.font.width(tag + " ");
@@ -307,7 +312,7 @@ public abstract class AbstractUpdatesScreen extends Screen {
                     Component.literal(this.font.plainSubstrByWidth(update.availableVersion(), VERSION_WIDTH - 6)),
                     newX, iconY + 1, blocked ? Texts.COLOR_WARN : Texts.COLOR_OK, false);
 
-            int box = checkX + 4;
+            int box = right - 14;
             graphics.fill(box, iconY, box + 12, iconY + 12, isSelected ? 0xFF2E7D32 : 0xFF3A3A3A);
             if (isSelected) {
                 graphics.text(this.font, Component.literal("✔"), box + 2, iconY + 2, 0xFFFFFFFF, false);
