@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `version.txt` is the single source of
 truth for the version; a new `## [x.y.z]` section is written in the same commit that bumps it.
 
+## [0.3.5] - 2026-10-31
+
+### Fixed
+
+- **The update list is hidden while a download runs.** The row buttons stayed visible under the
+  progress bar with nothing drawn in them, so they showed up as a column of empty grey bars; now the
+  screen shows only the progress of the work it is doing.
+
 ## [0.3.4] - 2026-10-31
 
 ### Fixed
