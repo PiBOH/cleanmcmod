@@ -60,29 +60,27 @@ each leaves `mods/` exactly as it was and shows one readable message.
 
 ## Supported versions
 
-This branch is the **Minecraft 26.1, 26.2 and 26.3** line. Those releases ship
-unobfuscated, so there are no Yarn mappings and no remap step: the mod is built
-with Loom's non-remapping plugin against the official class names and needs
-**Java 25**.
-
-One source tree covers all three. Pass `-Pmc=<version>` and the matching Fabric
-API and Mod Menu builds are selected from the support matrix in `build.gradle`;
-all three compile and are tested in CI, one workflow per version.
+One source tree covers **1.21.8, 1.21.9, 1.21.10 and 1.21.11**. Pass
+`-Pmc=<version>` and the matching Yarn, Fabric API and Java level are selected
+from the support matrix in `build.gradle`; all four compile and are tested in
+CI, one workflow per version.
 
 ```bash
-./gradlew clean build -Pmc=26.1   # build/libs/cleanmcmod-<version>+26.1.jar
+./gradlew clean build -Pmc=1.21.11   # build/libs/cleanmcmod-<version>+1.21.11.jar
 ```
 
-The 1.21.8 – 1.21.11 line (Yarn mappings, Java 21, remapping Loom) lives on
-`main`; this line keeps one branch per game version, each pinning its own
-default target in `gradle.properties`.
+26.1 / 26.2 / 26.3 are supported from their own branches, `26.1`, `26.2` and
+`26.3`: those releases ship unobfuscated, with no Yarn mappings, so they build
+with Loom's non-remapping plugin against the official class names on Java 25
+and cannot share this Yarn/JDK 21 tree.
 
 ## Optional Mod Menu
 
 If [Mod Menu](https://modrinth.com/mod/modmenu) is installed, CleanMCMod
-appears in its list and its **Config** button opens the settings screen. Mod
-Menu is compiled against with `compileOnly` and declared as `suggests`, never
-`depends`: without it the game boots normally and no Mod Menu class is loaded.
+appears in its list and its button opens the main CleanMCMod screen, where
+**Update mods...** is one click away. Mod Menu is compiled against with
+`modCompileOnly` and declared as `suggests`, never `depends`: without it the
+game boots normally and no Mod Menu class is loaded.
 
 ## Languages
 
@@ -93,13 +91,17 @@ same key set as `en_us.json`; `AGENTS.md` §6 has the parity check.
 
 ## Building from source
 
-The wrapper is checked in, so no Gradle installation is required. Minecraft 26.x
-needs one JDK: **Java 25** runs Gradle, Loom and the compile step.
+The wrapper is checked in, so no Gradle installation is required. Two JDKs are
+needed: Java 25 runs Gradle and Loom (Loom 1.19.3 refuses to run on 21), and a
+Java 21 must also be installed because the build pins a Java 21 toolchain.
 
 ```bash
 export JAVA_HOME=/path/to/jdk-25
-./gradlew clean build              # 73 unit tests + jar in build/libs/
+./gradlew clean build              # 50 unit tests + jar in build/libs/
 ./gradlew runClient                # dev client, game directory ./run
+
+# if Gradle cannot find the Java 21 toolchain:
+./gradlew clean build -Porg.gradle.java.installations.paths=/path/to/jdk-21
 ```
 
 The version comes from `version.txt` (single source of truth); the artifact is
@@ -126,6 +128,22 @@ the file uploaded to [Modrinth](https://modrinth.com/mod/cleanmcmod) for that
 game version (loader: Fabric, environment: client). The listing icon is
 `logo.png` at the repository root; the jar ships the same artwork as
 `assets/cleanmcmod/icon.png`.
+
+## Credits
+
+CleanMCMod is made by **PiBOH**.
+
+Its update list started from
+[ModMenuUpdater](https://github.com/UDPSendToFailed/ModMenuUpdater) by
+UDPSendToFailed, and its settings use the layout of
+[Sodium](https://modrinth.com/mod/sodium) and
+[Reese's Sodium Options](https://modrinth.com/mod/reeses-sodium-options).
+
+Other Minecraft mods by the same author:
+[Jarock](https://modrinth.com/mod/jarock) and
+[DedicatedPower](https://modrinth.com/mod/dedicatedpower), which PiBOH
+maintains and whose original author is
+[Server OS](https://modrinth.com/mod/server-os).
 
 ## License
 
