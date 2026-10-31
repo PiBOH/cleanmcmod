@@ -188,6 +188,7 @@ public final class ModUpdaterService {
                 snapshot.scannedMods()).withProgress(0, requested.size());
         executor.submit(() -> {
             List<ModInstaller.Outcome> outcomes = new ArrayList<>(requested.size());
+            try {
             List<ModUpdate> installable = new ArrayList<>(requested.size());
             List<ModVersion> dependencies = new ArrayList<>();
             List<LocalMod> installed = scanner.scan(gameDir);
@@ -238,6 +239,13 @@ public final class ModUpdaterService {
             } catch (Exception e) {
                 snapshot = new Snapshot(State.FAILED, List.of(),
                         ModInstaller.message(e), outcomes, snapshot.scannedMods());
+            }
+            } catch (RuntimeException exception) {
+                // Without this the executor would swallow the throw and the screen would sit on
+                // "installing" forever, which reads as "the install always fails".
+                CleanMcMod.LOGGER.warn("Mod update install failed: {}", exception.toString());
+                snapshot = new Snapshot(State.FAILED, List.of(), ModInstaller.message(exception), outcomes,
+                        snapshot.scannedMods());
             }
         });
     }
