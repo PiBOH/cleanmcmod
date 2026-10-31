@@ -154,7 +154,8 @@ jobs:
   release:
     name: Publish the release
     needs: [prepare, build]
-    if: always() && needs.prepare.result == 'success'
+    # A release carries one jar per Minecraft branch. If any branch failed, publishing would ship a partial release and spend the tag on it, so nothing is published until every jar exists.
+    if: needs.prepare.result == 'success' && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -169,12 +170,23 @@ jobs:
 
       - name: Check the collected jars
         shell: bash
+        env:
+          BRANCHES: ${{ needs.prepare.outputs.branches }}
         run: |
           set -euo pipefail
           shopt -s nullglob
           JARS=(dist/*.jar)
           if [[ ${#JARS[@]} -eq 0 ]]; then
             echo "No branch produced a jar, nothing to publish." >&2
+            exit 1
+          fi
+          # One jar per branch, no more and no fewer: a branch that stopped
+          # uploading must not look like a complete release.
+          EXPECTED=$(( $(printf '%s' "$BRANCHES" | tr -cd ',' | wc -c) + 1 ))
+          if [[ ${#JARS[@]} -ne $EXPECTED ]]; then
+            echo "Expected ${EXPECTED} jars, one per branch, collected ${#JARS[@]}." >&2
+            printf ' - %s
+' "${JARS[@]}" >&2
             exit 1
           fi
           printf 'Publishing %d jar(s):\n' "${#JARS[@]}"

@@ -59,6 +59,11 @@ Rules of ownership:
 
 ## 3. Code conventions
 
+- **Screens draw their own darkening.** `ScreenBackdrop` paints the gradient and
+  each screen overrides the background method (`renderBackground` on 1.21.x,
+  `extractBackground` on 26.x) instead of letting the game blur the frame: that
+  blur is a full-screen multi-pass pass on every frame, and it is what made the
+  settings drop frames. Do not restore it.
 - **Never block the render thread on I/O or HTTP.** Cleaning runs on the
   `cleanmcmod-cleaner` daemon thread, updates on `cleanmcmod-updater`; results
   come back through a future/`Snapshot` and screens re-read them in `render`.
@@ -214,6 +219,9 @@ Refactors happen only when a behaviour must change anyway.
 - **No AI attribution in commits.** Commit messages in this repository end with
   their own last line: no `Co-Authored-By`, no "Generated with" trailer, no bot
   signature.
+- **Commit messages are written in English**, whatever language the conversation
+  uses: the history is read by people who do not speak Italian. A release commit
+  still starts with `v<version>:`.
 - **The release follows `PiBOH/DedicatedPower`, and that is the only supported
   method:**
   - One release is produced from `main` by `.github/workflows/auto-release.yml`.
@@ -343,3 +351,4 @@ set, an `extraPaths` entry, a "clean everything" button), ask first: which
 path, why, and whether the game regenerates it. Wrong deletions are not
 recoverable. Map mods are the classic trap: the `cache` folder is ours to
 delete, the waypoints next to it are not.
+
