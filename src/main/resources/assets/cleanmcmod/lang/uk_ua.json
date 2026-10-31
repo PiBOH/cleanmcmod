@@ -2,6 +2,8 @@
   "cleanmcmod.about.creator": "Автор: PiBOH",
   "cleanmcmod.about.inspired": "Натхненно ModMenuUpdater, Sodium і Reese's Sodium Options",
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
+  "cleanmcmod.about.tagline": "Очищає кеш, через який гра малює неправильно, і оновлює моди з Modrinth, CurseForge та GitHub.",
+  "cleanmcmod.about.client_only": "Лише клієнт: на сервер не встановлюється.",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "Змінити...",
   "cleanmcmod.button.clean": "Очистити",

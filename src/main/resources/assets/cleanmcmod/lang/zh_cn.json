@@ -2,6 +2,8 @@
   "cleanmcmod.about.creator": "作者: PiBOH",
   "cleanmcmod.about.inspired": "灵感来自 ModMenuUpdater、Sodium 和 Reese's Sodium Options",
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
+  "cleanmcmod.about.tagline": "清理导致游戏渲染异常的缓存，并从 Modrinth、CurseForge 和 GitHub 更新模组。",
+  "cleanmcmod.about.client_only": "仅客户端：从不安装到服务器。",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "更改...",
   "cleanmcmod.button.clean": "立即清理",
