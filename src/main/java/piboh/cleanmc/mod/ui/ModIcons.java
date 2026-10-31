@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
+import piboh.cleanmc.mod.CleanMcMod;
 import piboh.cleanmc.mod.update.LocalMod;
 
 import java.io.InputStream;
@@ -59,6 +60,9 @@ public final class ModIcons {
                 return id;
             }
         } catch (Exception exception) {
+            // A jar whose icon cannot be decoded keeps its initial tile, and the reason is in the log
+            // instead of being swallowed.
+            CleanMcMod.LOGGER.warn("Could not read the icon of {}: {}", mod.fileName(), exception.toString());
             return null;
         }
     }
@@ -70,6 +74,10 @@ public final class ModIcons {
             if (exact != null) {
                 return exact;
             }
+        }
+        ZipEntry root = zip.getEntry("icon.png");
+        if (root != null) {
+            return root;
         }
         ZipEntry best = null;
         Enumeration<? extends ZipEntry> entries = zip.entries();

@@ -265,7 +265,7 @@ public final class ModUpdaterService {
                 boolean replaced = !written.contains(oldName) && fetched.stream()
                         .anyMatch(version -> version.projectId().equals(entry.getKey()));
                 if (replaced) {
-                    installer.retire(entry.getValue());
+                    installer.queueRemoval(entry.getValue());
                 }
             }
         }
