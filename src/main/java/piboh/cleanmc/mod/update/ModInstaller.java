@@ -12,13 +12,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Writes a downloaded update into {@code mods/} without ever losing the working jar first.
+ * Writes a downloaded update into {@code mods/} without ever losing the working jar.
  *
- * <p>Sequence: download into a temporary file in the same folder, verify its SHA-1 against
- * Modrinth, move any same-name file aside, move the verified temp file into place, and only then
- * remove the old jar. Any failure deletes the temp file and restores whatever was moved, so the
- * folder is unchanged. The obsolete jar, if the game holds it open, is renamed to {@code *.old}
- * (which the game does not load) instead of being left as a second version.</p>
+ * <p>Minecraft keeps the jars in {@code mods/} open for the whole session, so Windows refuses to
+ * delete, rename or overwrite one while the game runs. The installer therefore never fights that
+ * lock, the same way Mod Menu Updater does not: the new build is written under its own file name,
+ * and the jar it replaces is deleted now when the game has let go of it and otherwise handed to
+ * {@link PendingRemovals}, which moves it out of {@code mods/} on the next launch. Nothing is
+ * deleted before the replacement is in place.</p>
+ *
+ * <p>The whole request still behaves as one batch: every jar is downloaded and hash-checked before
+ * anything is written, one update whose own jar cannot be fetched or written fails alone, and a
+ * missing dependency cancels everything, because a mod installed without its library is the half
+ * install the batch exists to prevent.</p>
  */
 public final class ModInstaller {
 
@@ -27,8 +33,7 @@ public final class ModInstaller {
     }
 
     /**
-     * @param detail on failure the reason; on success with a non-null detail, a leftover file the
-     *               user has to delete by hand
+     * @param detail on failure the reason naming the file
      */
     public record Outcome(ModUpdate update, boolean success, String detail) {
     }
@@ -47,11 +52,6 @@ public final class ModInstaller {
      * Installs the requested updates and the dependencies resolved for them as one unit: every jar
      * is downloaded and hash-checked first, so nothing in {@code mods/} changes until the whole set
      * is ready.
-     *
-     * <p>One update whose own jar cannot be fetched fails alone: the other mods in the request are
-     * still installed, and the alert names the file that could not be downloaded. A dependency is
-     * different - installing a mod without the library it requires is the half-install the batch
-     * exists to prevent, so a missing dependency cancels everything.</p>
      */
     public List<Outcome> installTogether(List<ModUpdate> updates, List<ModVersion> dependencies,
             Downloader downloader) {
@@ -95,37 +95,69 @@ public final class ModInstaller {
             }
         } catch (IOException | RuntimeException e) {
             discard(prepared);
-            String reason = message(e);
-            CleanMcMod.LOGGER.warn("Mod update batch cancelled, mods folder unchanged: {}", reason);
-            List<Outcome> failures = new ArrayList<>(updates.size());
-            for (ModUpdate update : updates) {
-                failures.add(new Outcome(update, false, reason));
+            return cancelled(updates, message(e));
+        }
+
+        List<Path> written = new ArrayList<>(prepared.size());
+        for (int index = 0; index < prepared.size(); index++) {
+            Prepared entry = prepared.get(index);
+            Path target = modsDir.resolve(entry.version().fileName()).normalize();
+            try {
+                Files.move(entry.temp(), target, StandardCopyOption.REPLACE_EXISTING);
+                written.add(target);
+            } catch (IOException e) {
+                deleteQuietly(entry.temp());
+                if (requested.containsKey(entry.version().fileKey())) {
+                    // The jar the game has open cannot be overwritten: this mod fails, the others
+                    // in the batch still go in.
+                    broken.put(entry.version().fileKey(), entry.version().fileName() + ": " + message(e));
+                    CleanMcMod.LOGGER.warn("Leaving {} out of this batch: {}",
+                            entry.version().fileName(), message(e));
+                    continue;
+                }
+                for (Prepared rest : prepared.subList(index + 1, prepared.size())) {
+                    deleteQuietly(rest.temp());
+                }
+                for (Path path : written) {
+                    deleteQuietly(path);
+                }
+                return cancelled(updates, message(e));
             }
-            return failures;
         }
 
         List<Outcome> outcomes = new ArrayList<>(updates.size());
-        for (Prepared entry : prepared) {
-            try {
-                Files.move(entry.temp(), modsDir.resolve(entry.version().fileName()),
-                        StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
-                discard(prepared);
-                CleanMcMod.LOGGER.warn("Could not write {} into the mods folder: {}",
-                        entry.version().fileName(), message(e));
-                for (ModUpdate update : updates) {
-                    outcomes.add(new Outcome(update, false, message(e)));
-                }
-                return outcomes;
-            }
-        }
         for (ModUpdate update : updates) {
             String reason = broken.get(update.candidate().fileKey());
-            outcomes.add(reason == null
-                    ? new Outcome(update, true, removeObsolete(update))
-                    : new Outcome(update, false, reason));
+            if (reason != null) {
+                outcomes.add(new Outcome(update, false, reason));
+                continue;
+            }
+            Path previous = update.local().path().toAbsolutePath().normalize();
+            if (!previous.equals(modsDir.resolve(update.candidate().fileName()).normalize())) {
+                queueRemoval(previous);
+            }
+            outcomes.add(new Outcome(update, true, null));
         }
         return outcomes;
+    }
+
+    /**
+     * Deletes the jar an update replaced. A jar the game holds open cannot be deleted, so it is
+     * queued instead and removed on the next launch.
+     */
+    public void queueRemoval(Path jar) {
+        try {
+            if (Files.deleteIfExists(jar)) {
+                CleanMcMod.LOGGER.info("Removed the replaced jar {}", jar.getFileName());
+            }
+        } catch (IOException locked) {
+            PendingRemovals.schedule(jar, configDir());
+        }
+    }
+
+    private Path configDir() {
+        Path parent = modsDir.getParent();
+        return parent == null ? modsDir.resolve("config") : parent.resolve("config");
     }
 
     /**
@@ -156,47 +188,25 @@ public final class ModInstaller {
         throw new IOException(version.fileName() + ": " + message(last));
     }
 
-    /** Deletes the jar an update replaced; a locked jar is renamed to {@code *.old} instead. */
-    private String removeObsolete(ModUpdate update) {
-        Path previous = update.local().path().toAbsolutePath().normalize();
-        if (previous.equals(modsDir.resolve(update.candidate().fileName()))) {
-            return null;
+    private static List<Outcome> cancelled(List<ModUpdate> updates, String reason) {
+        CleanMcMod.LOGGER.warn("Mod update batch cancelled, mods folder unchanged: {}", reason);
+        List<Outcome> failures = new ArrayList<>(updates.size());
+        for (ModUpdate update : updates) {
+            failures.add(new Outcome(update, false, reason));
         }
-        return retire(previous);
-    }
-
-    /**
-     * Removes a jar a just-installed dependency replaces, so {@code mods/} never holds two builds
-     * of the same mod. A jar the game holds open is renamed to {@code *.old}.
-     *
-     * @return the file name left behind, or null when the jar is gone
-     */
-    String retire(Path jar) {
-        try {
-            Files.deleteIfExists(jar);
-            return null;
-        } catch (IOException locked) {
-            try {
-                Files.move(jar, jar.resolveSibling(jar.getFileName() + ".old"),
-                        StandardCopyOption.REPLACE_EXISTING);
-                return null;
-            } catch (IOException renameFailed) {
-                CleanMcMod.LOGGER.warn("Could not remove the old jar {}", jar);
-                return jar.getFileName().toString();
-            }
-        }
+        return failures;
     }
 
     private static void discard(List<Prepared> prepared) {
         for (Prepared entry : prepared) {
-            try {
-                Files.deleteIfExists(entry.temp());
-            } catch (IOException ignored) {
-                CleanMcMod.LOGGER.debug("Could not delete temporary download {}", entry.temp());
-            }
+            deleteQuietly(entry.temp());
         }
     }
 
+    /**
+     * Installs a single update: download, verify, move the same-name file aside, move the new jar
+     * in, and only then retire the old one.
+     */
     public Outcome installOne(ModUpdate update, Downloader downloader) {
         Path target = modsDir.resolve(update.candidate().fileName()).normalize();
         if (!target.startsWith(modsDir) || target.equals(modsDir)) {
@@ -235,34 +245,18 @@ public final class ModInstaller {
 
             Path previous = update.local().path().toAbsolutePath().normalize();
             if (!previous.equals(target)) {
-                try {
-                    Files.deleteIfExists(previous);
-                } catch (IOException locked) {
-                    try {
-                        Files.move(previous, previous.resolveSibling(previous.getFileName() + ".old"),
-                                StandardCopyOption.REPLACE_EXISTING);
-                    } catch (IOException renameFailed) {
-                        CleanMcMod.LOGGER.warn("Could not remove the old jar {}", previous);
-                        return new Outcome(update, true, previous.getFileName().toString());
-                    }
-                }
+                queueRemoval(previous);
             }
             return new Outcome(update, true, null);
         } catch (IOException | RuntimeException e) {
-            if (temp != null) {
-                try {
-                    Files.deleteIfExists(temp);
-                } catch (IOException ignored) {
-                    CleanMcMod.LOGGER.debug("Could not delete temporary download {}", temp);
-                }
-            }
+            deleteQuietly(temp);
             return new Outcome(update, false, message(e));
         }
     }
 
     /**
      * Checks a download against the hash its source publishes. CurseForge and GitHub publish none,
-     * so those jars are accepted unverified — and that is logged, never silently pretended.
+     * so those jars are accepted unverified - and that is logged, never silently pretended.
      */
     private static void verify(ModVersion version, Path temp) throws IOException {
         if (!version.checksummed()) {
@@ -276,6 +270,9 @@ public final class ModInstaller {
     }
 
     private static void deleteQuietly(Path file) {
+        if (file == null) {
+            return;
+        }
         try {
             Files.deleteIfExists(file);
         } catch (IOException ignored) {
