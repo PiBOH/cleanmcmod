@@ -160,7 +160,7 @@ public abstract class AbstractUpdatesScreen extends Screen {
             scrollRows = 0;
         }
         updateButtons(snapshot);
-        bindRows();
+        bindRows(snapshot.state() == ModUpdaterService.State.INSTALLING);
 
         int centerX = this.width / 2;
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, centerX, 14, 0xFFFFFFFF);
@@ -232,8 +232,12 @@ public abstract class AbstractUpdatesScreen extends Screen {
         }
     }
 
-    /** Points each pooled row button at the row it now shows, and hides the ones past the end. */
-    private void bindRows() {
+    /**
+     * Points each pooled row button at the row it now shows, and hides the ones past the end. While
+     * an install runs the table is not drawn at all, so the rows are hidden too: an empty button
+     * under the progress bar reads as a row with no content.
+     */
+    private void bindRows(boolean installing) {
         int maxScroll = Math.max(0, shown.size() - visibleRows());
         if (scrollRows > maxScroll) {
             scrollRows = maxScroll;
@@ -241,7 +245,7 @@ public abstract class AbstractUpdatesScreen extends Screen {
         for (int index = 0; index < rowButtons.size(); index++) {
             ButtonWidget button = rowButtons.get(index);
             int data = scrollRows + index;
-            boolean visible = data < shown.size();
+            boolean visible = !installing && data < shown.size();
             button.visible = visible;
             button.active = visible;
             button.setX(listLeft() + 2);
