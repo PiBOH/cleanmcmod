@@ -63,27 +63,44 @@ public final class ModUpdaterService {
     private final Checker checker;
     private final ModInstaller.Downloader downloader;
     private final DependencyResolver resolver;
+    private final boolean delegated;
     private final ExecutorService executor;
 
     private volatile Snapshot snapshot = new Snapshot(State.IDLE, List.of(), null, List.of(), 0);
 
     public ModUpdaterService(Path gameDir, Checker checker, ModInstaller.Downloader downloader) {
-        this(gameDir, checker, downloader, NO_RESOLVER);
+        this(gameDir, checker, downloader, NO_RESOLVER, false);
     }
 
     public ModUpdaterService(Path gameDir, Checker checker, ModInstaller.Downloader downloader,
             DependencyResolver resolver) {
-        this(gameDir, new ModScanner(), new ModInstaller(gameDir.resolve("mods")), checker, downloader, resolver);
+        this(gameDir, checker, downloader, resolver, false);
+    }
+
+    /**
+     * @param delegated true when Mod Menu Updater is installed: it already owns in-game updating,
+     *                  so this service only checks and never writes to {@code mods/}
+     */
+    public ModUpdaterService(Path gameDir, Checker checker, ModInstaller.Downloader downloader,
+            DependencyResolver resolver, boolean delegated) {
+        this(gameDir, new ModScanner(), new ModInstaller(gameDir.resolve("mods")), checker, downloader,
+                resolver, delegated);
     }
 
     ModUpdaterService(Path gameDir, ModScanner scanner, ModInstaller installer, Checker checker,
             ModInstaller.Downloader downloader, DependencyResolver resolver) {
+        this(gameDir, scanner, installer, checker, downloader, resolver, false);
+    }
+
+    ModUpdaterService(Path gameDir, ModScanner scanner, ModInstaller installer, Checker checker,
+            ModInstaller.Downloader downloader, DependencyResolver resolver, boolean delegated) {
         this.gameDir = gameDir.toAbsolutePath().normalize();
         this.scanner = scanner;
         this.installer = installer;
         this.checker = checker;
         this.downloader = downloader;
         this.resolver = resolver;
+        this.delegated = delegated;
         this.executor = Executors.newSingleThreadExecutor(runnable -> {
             Thread thread = new Thread(runnable, "cleanmcmod-updater");
             thread.setDaemon(true);
@@ -93,6 +110,15 @@ public final class ModUpdaterService {
 
     public Snapshot snapshot() {
         return snapshot;
+    }
+
+    /**
+     * True when Mod Menu Updater is installed. It adds updating to Mod Menu itself, so two updaters
+     * writing the same folder is exactly the conflict this avoids: the screen shows its list, hands
+     * the install step over, and {@link #installAsync} refuses.
+     */
+    public boolean delegated() {
+        return delegated;
     }
 
     public void checkAsync() {
@@ -114,6 +140,10 @@ public final class ModUpdaterService {
     }
 
     public void installAsync(List<ModUpdate> updates) {
+        if (delegated) {
+            CleanMcMod.LOGGER.info("Mod Menu Updater is installed — leaving the install to it");
+            return;
+        }
         if (snapshot.busy() || updates.isEmpty()) {
             return;
         }

@@ -5,6 +5,7 @@ public enum CacheCategory {
     VANILLA("cleanmcmod.category.vanilla"),
     LOADER("cleanmcmod.category.loader"),
     RESOURCE_PACK("cleanmcmod.category.resource_pack"),
+    MAP("cleanmcmod.category.map"),
     MOD("cleanmcmod.category.mod"),
     CUSTOM("cleanmcmod.category.custom");
 

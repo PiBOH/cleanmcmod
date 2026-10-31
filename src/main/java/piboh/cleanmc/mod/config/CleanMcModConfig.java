@@ -30,6 +30,7 @@ public final class CleanMcModConfig {
     public boolean includeServerResourcePacks = true;
     public boolean includeLoaderCaches = true;
     public boolean includeAssetCache = false;
+    public boolean includeMapCaches = true;
     public boolean autoDetect = true;
     public boolean dryRun = false;
     public List<String> extraPaths = new ArrayList<>();
