@@ -20,9 +20,10 @@ truth for the version; a new `## [x.y.z]` section is written in the same commit 
 
 ### Fixed
 
-- **Rescan measures the caches again.** The button asked for the last measurement instead of taking a
-  new one, so the numbers never changed; the measurement now runs on the mod's own worker thread and
-  the menu says it is running while it does.
+- **Rescan no longer freezes the menu.** The measurement did run again, but on the render thread, so
+  the game stopped for the whole walk and, because nothing had changed on disk, the numbers looked
+  identical; it now runs on the mod's own worker thread and the menu says it is running while it
+  does. (Corrected: this note first said the button reused the last measurement, which it did not.)
 - **A build that is already installed is no longer offered under a game-version prefix.** Collective
   8.72 was offered as `26.3.0-8.72`, which is the same jar under another name.
 
