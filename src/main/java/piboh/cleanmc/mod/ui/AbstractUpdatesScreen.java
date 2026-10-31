@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import piboh.cleanmc.mod.update.ModInstaller;
 import piboh.cleanmc.mod.update.ModUpdate;
 import piboh.cleanmc.mod.update.ModUpdaterService;
@@ -17,11 +18,11 @@ import java.util.Set;
 
 /**
  * The Mod Updates list, drawn as a table: icon and name, installed version, new version, checkbox.
- * A click anywhere on a row ticks its box; the download buttons use the boxes, and a finished
- * download opens the result alert.
  *
- * <p>The concrete {@code ModUpdatesScreen} stays a separate class so the click handling of this
- * input API can change without touching the layout.</p>
+ * <p>Every row is a real button laid over the row rectangle, so the click is handled by the widget
+ * system exactly like the buttons below the list: pressing anywhere on a row ticks its box. The
+ * screen paints the row content on top of the (empty) button, which keeps the table look and the
+ * click in one place.</p>
  */
 public abstract class AbstractUpdatesScreen extends Screen {
 
@@ -35,8 +36,9 @@ public abstract class AbstractUpdatesScreen extends Screen {
     private final Screen parent;
     private final ModUpdaterService service;
     private final Set<Path> selected = new HashSet<>();
+    private final List<Button> rowButtons = new ArrayList<>();
 
-    private double scroll;
+    private int scrollRows;
     private List<ModUpdate> shown = List.of();
     private Button downloadSelected;
     private Button downloadAll;
@@ -69,10 +71,22 @@ public abstract class AbstractUpdatesScreen extends Screen {
             this.addRenderableWidget(this.downloadSelected);
             this.addRenderableWidget(this.downloadAll);
         }
+
+        this.rowButtons.clear();
+        int visible = visibleRows();
+        for (int index = 0; index < visible; index++) {
+            Button row = Button.builder(Component.empty(), button -> toggleRow(button))
+                    .bounds(listLeft() + 2, LIST_TOP + index * ROW_HEIGHT, listWidth() - 4,
+                            ROW_HEIGHT - 2)
+                    .build();
+            this.rowButtons.add(row);
+            this.addRenderableWidget(row);
+        }
+
         this.addRenderableWidget(Button.builder(Component.translatable("cleanmcmod.button.refresh"),
                         button -> {
                             selected.clear();
-                            scroll = 0;
+                            scrollRows = 0;
                             resultShown = false;
                             lastOutcomes = List.of();
                             service.checkAsync();
@@ -83,6 +97,21 @@ public abstract class AbstractUpdatesScreen extends Screen {
                         button -> this.onClose())
                 .bounds(centerX + 4, this.height - 26, 150, 20)
                 .build());
+    }
+
+    private int visibleRows() {
+        return Math.max(1, (this.height - BOTTOM_RESERVED - LIST_TOP) / ROW_HEIGHT);
+    }
+
+    private void toggleRow(Button button) {
+        int index = this.rowButtons.indexOf(button) + this.scrollRows;
+        if (index < 0 || index >= shown.size()) {
+            return;
+        }
+        Path key = shown.get(index).local().path();
+        if (!selected.remove(key)) {
+            selected.add(key);
+        }
     }
 
     private void downloadSelected() {
@@ -111,11 +140,13 @@ public abstract class AbstractUpdatesScreen extends Screen {
         if (!snapshot.updates().equals(shown)) {
             shown = snapshot.updates();
             selected.retainAll(shown.stream().map(update -> update.local().path()).toList());
+            scrollRows = 0;
         }
         updateButtons(snapshot);
+        bindRows();
 
-        if (!resultShown && snapshot.state() == ModUpdaterService.State.READY
-                && !snapshot.outcomes().isEmpty() && snapshot.outcomes() != lastOutcomes) {
+        if (!resultShown && !snapshot.busy() && !snapshot.outcomes().isEmpty()
+                && snapshot.outcomes() != lastOutcomes) {
             resultShown = true;
             lastOutcomes = snapshot.outcomes();
             this.minecraft.setScreenAndShow(new UpdateResultScreen(this, lastOutcomes));
@@ -168,13 +199,17 @@ public abstract class AbstractUpdatesScreen extends Screen {
     private void renderProgress(GuiGraphicsExtractor graphics, ModUpdaterService.Snapshot snapshot) {
         double target = Math.max(snapshot.progress(), 0.02);
         shownProgress += (target - shownProgress) * 0.18;
+        if (target > shownProgress + 0.5) {
+            shownProgress = target;
+        }
         int x = listLeft();
         int width = listWidth();
         int y = 52;
         graphics.fill(x, y, x + width, y + 6, 0xFF1B1B1B);
-        graphics.fill(x, y, x + Math.max(1, (int) Math.round(width * shownProgress)), y + 6, 0xFF3BAA5C);
-        graphics.centeredText(this.font,
-                Component.literal(Math.round(shownProgress * 100) + "%"), this.width / 2, y + 10, 0xFFFFFFFF);
+        int filled = (int) Math.round(width * shownProgress);
+        graphics.fill(x, y, x + Math.max(1, filled), y + 6, 0xFF3BAA5C);
+        graphics.centeredText(this.font, Component.literal(Math.round(shownProgress * 100) + "%"),
+                this.width / 2, y + 10, 0xFFFFFFFF);
     }
 
     private void updateButtons(ModUpdaterService.Snapshot snapshot) {
@@ -188,14 +223,27 @@ public abstract class AbstractUpdatesScreen extends Screen {
         }
     }
 
+    /** Points each pooled row button at the row it now shows, and hides the ones past the end. */
+    private void bindRows() {
+        int maxScroll = Math.max(0, shown.size() - visibleRows());
+        if (scrollRows > maxScroll) {
+            scrollRows = maxScroll;
+        }
+        for (int index = 0; index < rowButtons.size(); index++) {
+            Button button = rowButtons.get(index);
+            int data = scrollRows + index;
+            boolean visible = data < shown.size();
+            button.visible = visible;
+            button.active = visible;
+            button.setX(listLeft() + 2);
+            button.setY(LIST_TOP + index * ROW_HEIGHT);
+        }
+    }
+
     private void renderList(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         int left = listLeft();
         int width = listWidth();
         int right = left + width;
-        int listBottom = this.height - BOTTOM_RESERVED;
-        int rows = Math.max(1, (listBottom - LIST_TOP) / ROW_HEIGHT);
-        int first = (int) (scroll / ROW_HEIGHT);
-        int y = LIST_TOP - (int) (scroll % ROW_HEIGHT);
 
         int checkX = right - CHECK_WIDTH;
         int newX = checkX - VERSION_WIDTH;
@@ -207,17 +255,61 @@ public abstract class AbstractUpdatesScreen extends Screen {
                 newX, LIST_TOP - 12, Texts.COLOR_INFO, false);
         graphics.fill(left, LIST_TOP - 2, right, LIST_TOP - 1, 0x33FFFFFF);
 
-        for (int index = first; index < shown.size() && index < first + rows; index++) {
-            ModUpdate update = shown.get(index);
+        for (int index = 0; index < rowButtons.size(); index++) {
+            int data = scrollRows + index;
+            if (data >= shown.size()) {
+                break;
+            }
+            ModUpdate update = shown.get(data);
+            int y = LIST_TOP + index * ROW_HEIGHT;
+            int rowTop = y - 2;
+            int rowBottom = y + ROW_HEIGHT - 4;
             boolean isSelected = selected.contains(update.local().path());
             boolean blocked = update.blocked();
             boolean resolvable = update.resolvable();
+            boolean hovered = mouseX >= left && mouseX <= right && mouseY >= rowTop && mouseY < rowBottom;
 
-            if (isSelected) {
-                graphics.fill(left, y - 3, right, y + ROW_HEIGHT - 4, 0x332E7D32);
+            int background = isSelected ? 0xFF20351F : hovered ? 0xFF2C2C2C : 0xFF1A1A1A;
+            graphics.fill(left, rowTop, right, rowBottom, background);
+            graphics.fill(left, rowTop, left + 2, rowBottom, isSelected ? 0xFF55FF55 : 0xFF3A3A3A);
+
+            Identifier icon = ModIcons.get(update.local());
+            int iconX = left + 6;
+            int iconY = rowTop + 3;
+            if (icon != null) {
+                graphics.blit(icon, iconX, iconY, 0, 0, ICON, ICON, ICON, ICON);
+            } else {
+                graphics.fill(iconX, iconY, iconX + ICON, iconY + ICON, 0xFF2B2B2B);
+                String initial = update.displayName().isEmpty() ? "?"
+                        : update.displayName().substring(0, 1).toUpperCase(Locale.ROOT);
+                graphics.centeredText(this.font, Component.literal(initial), iconX + ICON / 2, iconY + 4,
+                        Texts.COLOR_INFO);
             }
-            if (mouseX >= left && mouseX <= right && mouseY >= y - 3 && mouseY < y + ROW_HEIGHT - 3) {
-                graphics.fill(left, y - 3, right, y + ROW_HEIGHT - 4, 0x22FFFFFF);
+
+            int nameX = iconX + ICON + 5;
+            int nameRoom = Math.max(40, installedX - nameX - 8);
+            String tag = "[" + update.candidate().source().tag() + "]";
+            int tagWidth = this.font.width(tag + " ");
+            graphics.text(this.font, Component.literal(tag), nameX, iconY + 1,
+                    Texts.sourceColor(update.candidate().source()), false);
+            String name = this.font.plainSubstrByWidth(update.displayName(), Math.max(24, nameRoom - tagWidth));
+            int nameColor = blocked ? (resolvable ? Texts.COLOR_WARN : Texts.COLOR_ERROR) : 0xFFFFFFFF;
+            graphics.text(this.font, Component.literal(name), nameX + tagWidth, iconY + 1, nameColor, false);
+
+            graphics.text(this.font,
+                    Component.literal(this.font.plainSubstrByWidth(update.installedVersion(), VERSION_WIDTH - 6)),
+                    installedX, iconY + 1, Texts.COLOR_INFO, false);
+            graphics.text(this.font,
+                    Component.literal(this.font.plainSubstrByWidth(update.availableVersion(), VERSION_WIDTH - 6)),
+                    newX, iconY + 1, blocked ? Texts.COLOR_WARN : Texts.COLOR_OK, false);
+
+            int box = checkX + 4;
+            graphics.fill(box, iconY, box + 12, iconY + 12, isSelected ? 0xFF2E7D32 : 0xFF3A3A3A);
+            if (isSelected) {
+                graphics.text(this.font, Component.literal("✔"), box + 2, iconY + 2, 0xFFFFFFFF, false);
+            }
+
+            if (hovered) {
                 List<Component> tooltip = new ArrayList<>(2);
                 tooltip.add(Texts.source(update.candidate().source()));
                 if (update.reason() != null) {
@@ -225,51 +317,21 @@ public abstract class AbstractUpdatesScreen extends Screen {
                 }
                 graphics.setComponentTooltipForNextFrame(this.font, tooltip, mouseX, mouseY);
             }
-
-            graphics.fill(left, y + 1, left + ICON, y + 1 + ICON, 0xFF2B2B2B);
-            String initial = update.displayName().isEmpty() ? "?"
-                    : update.displayName().substring(0, 1).toUpperCase(Locale.ROOT);
-            graphics.centeredText(this.font, Component.literal(initial), left + ICON / 2, y + 5, Texts.COLOR_INFO);
-
-            int nameX = left + ICON + 6;
-            int nameRoom = Math.max(40, installedX - nameX - 8);
-            String tag = "[" + update.candidate().source().tag() + "]";
-            int tagWidth = this.font.width(tag + " ");
-            graphics.text(this.font, Component.literal(tag), nameX, y + 4,
-                    Texts.sourceColor(update.candidate().source()), false);
-            String name = this.font.plainSubstrByWidth(update.displayName(), Math.max(24, nameRoom - tagWidth));
-            int nameColor = blocked ? (resolvable ? Texts.COLOR_WARN : Texts.COLOR_ERROR) : 0xFFFFFFFF;
-            graphics.text(this.font, Component.literal(name), nameX + tagWidth, y + 4, nameColor, false);
-
-            graphics.text(this.font,
-                    Component.literal(this.font.plainSubstrByWidth(update.installedVersion(), VERSION_WIDTH - 6)),
-                    installedX, y + 4, Texts.COLOR_INFO, false);
-            graphics.text(this.font,
-                    Component.literal(this.font.plainSubstrByWidth(update.availableVersion(), VERSION_WIDTH - 6)),
-                    newX, y + 4, blocked ? Texts.COLOR_WARN : Texts.COLOR_OK, false);
-
-            int box = checkX + 4;
-            graphics.fill(box, y + 4, box + 12, y + 16, isSelected ? 0xFF2E7D32 : 0xFF3A3A3A);
-            if (isSelected) {
-                graphics.text(this.font, Component.literal("✔"), box + 2, y + 5, 0xFFFFFFFF, false);
-            }
-            y += ROW_HEIGHT;
         }
 
-        double maxScroll = Math.max(0, shown.size() * ROW_HEIGHT - (listBottom - LIST_TOP));
+        double maxScroll = Math.max(0, shown.size() - visibleRows());
         if (maxScroll > 0) {
             int trackTop = LIST_TOP;
-            int trackHeight = listBottom - LIST_TOP;
-            int thumbHeight = Math.max(16,
-                    (int) (trackHeight * (trackHeight / (double) (shown.size() * ROW_HEIGHT))));
-            int thumbTop = trackTop + (int) ((trackHeight - thumbHeight) * (scroll / maxScroll));
+            int trackHeight = (this.height - BOTTOM_RESERVED) - LIST_TOP;
+            int thumbHeight = Math.max(16, (int) (trackHeight * (visibleRows() / (double) shown.size())));
+            int thumbTop = trackTop + (int) ((trackHeight - thumbHeight) * (scrollRows / maxScroll));
             graphics.fill(right + 4, trackTop, right + 6, trackTop + trackHeight, 0x22FFFFFF);
             graphics.fill(right + 4, thumbTop, right + 6, thumbTop + thumbHeight, 0x88FFFFFF);
         }
 
         graphics.centeredText(this.font,
                 Component.translatable("cleanmcmod.screen.updates.hint", selected.size()),
-                this.width / 2, listBottom + 4, Texts.COLOR_INFO);
+                this.width / 2, this.height - BOTTOM_RESERVED + 4, Texts.COLOR_INFO);
     }
 
     private int listWidth() {
@@ -287,39 +349,13 @@ public abstract class AbstractUpdatesScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount,
             double verticalAmount) {
-        int listHeight = this.height - BOTTOM_RESERVED - LIST_TOP;
-        double maxScroll = Math.max(0, shown.size() * ROW_HEIGHT - listHeight);
+        int maxScroll = Math.max(0, shown.size() - visibleRows());
         if (maxScroll > 0) {
-            this.scroll = Math.max(0, Math.min(maxScroll, this.scroll - verticalAmount * ROW_HEIGHT));
+            int step = verticalAmount > 0 ? -1 : verticalAmount < 0 ? 1 : 0;
+            this.scrollRows = Math.max(0, Math.min(maxScroll, this.scrollRows + step));
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
-    }
-
-    /** Handles a left click on the table: any click in a row ticks or clears its box. */
-    protected boolean clickRow(double mouseX, double mouseY, int button) {
-        if (button != 0 || shown.isEmpty()) {
-            return false;
-        }
-        int left = listLeft();
-        int right = left + listWidth();
-        int index = rowAt(mouseX, mouseY);
-        if (index < 0 || mouseX < left || mouseX > right) {
-            return false;
-        }
-        Path key = shown.get(index).local().path();
-        if (!selected.remove(key)) {
-            selected.add(key);
-        }
-        return true;
-    }
-
-    private int rowAt(double mouseX, double mouseY) {
-        if (mouseY < LIST_TOP || mouseY >= this.height - BOTTOM_RESERVED) {
-            return -1;
-        }
-        int index = (int) ((mouseY - LIST_TOP + scroll) / ROW_HEIGHT);
-        return index >= 0 && index < shown.size() ? index : -1;
     }
 
     @Override
