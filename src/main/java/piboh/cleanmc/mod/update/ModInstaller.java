@@ -69,7 +69,7 @@ public final class ModInstaller {
                 }
                 Path temp = Files.createTempFile(modsDir, ".cleanmcmod-", ".tmp");
                 prepared.add(new Prepared(version, temp));
-                downloader.download(version.downloadUrl(), temp);
+                fetch(downloader, version, temp);
                 verify(version, temp);
             }
         } catch (IOException | RuntimeException e) {
@@ -99,6 +99,34 @@ public final class ModInstaller {
             outcomes.add(new Outcome(update, true, removeObsolete(update)));
         }
         return outcomes;
+    }
+
+    /**
+     * Downloads one jar, retrying once: a dropped connection or a 5xx from the CDN is not worth
+     * failing the whole batch for. The reason names the file, so the alert can say which mod could
+     * not be fetched instead of a bare "download failed".
+     */
+    private static void fetch(Downloader downloader, ModVersion version, Path temp) throws IOException {
+        IOException last = null;
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                downloader.download(version.downloadUrl(), temp);
+                return;
+            } catch (IOException e) {
+                last = e;
+                CleanMcMod.LOGGER.warn("Download of {} failed (attempt {}/2): {}", version.fileName(), attempt,
+                        message(e));
+                if (attempt == 1) {
+                    try {
+                        Thread.sleep(500L);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        throw e;
+                    }
+                }
+            }
+        }
+        throw new IOException(version.fileName() + ": " + message(last));
     }
 
     /** Deletes the jar an update replaced; a locked jar is renamed to {@code *.old} instead. */
