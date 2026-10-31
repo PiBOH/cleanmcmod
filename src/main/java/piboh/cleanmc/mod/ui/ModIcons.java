@@ -26,7 +26,7 @@ import java.util.zip.ZipFile;
  */
 public final class ModIcons {
 
-    private static final int ICON_PIXELS = 16;
+    private static final int ICON_PIXELS = 12;
 
     private static final Map<Path, Identifier> CACHE = new HashMap<>();
     private static final Map<Path, Boolean> TRIED = new HashMap<>();
