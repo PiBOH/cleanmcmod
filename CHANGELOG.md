@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `version.txt` is the single source of
 truth for the version; a new `## [x.y.z]` section is written in the same commit that bumps it.
 
+## [0.3.2] - 2026-10-31
+
+### Fixed
+
+- **Rows in the update list are clickable again.** Every row is now a real button under the drawn
+  table, so a click anywhere on a row ticks its box and "Download selected" enables immediately.
+- **The update list shows each mod's own icon.** It is read from `assets/<modid>/icon.png` in the jar
+  that is already in `mods/`, so nothing is downloaded; a jar without a usable icon keeps the tile
+  with the mod's initial.
+
 ## [0.3.1] - 2026-10-31
 
 ### Added

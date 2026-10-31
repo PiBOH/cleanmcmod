@@ -4,7 +4,7 @@ import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.screen.Screen;
 import piboh.cleanmc.mod.update.ModUpdaterService;
 
-/** Mod Updates screen for the 1.21.9+ input API, where clicks arrive as a {@link Click}. */
+/** Mod Updates screen for the 1.21.9+ input API; rows are widgets, so clicks are theirs. */
 public final class ModUpdatesScreen extends AbstractUpdatesScreen {
 
     public ModUpdatesScreen(Screen parent, ModUpdaterService service) {
@@ -13,9 +13,6 @@ public final class ModUpdatesScreen extends AbstractUpdatesScreen {
 
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
-        if (clickRow(click.x(), click.y(), click.button())) {
-            return true;
-        }
         return super.mouseClicked(click, doubled);
     }
 }
