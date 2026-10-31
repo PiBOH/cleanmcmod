@@ -6,6 +6,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `version.txt` is the single source of
 truth for the version; a new `## [x.y.z]` section is written in the same commit that bumps it.
 
+## [0.3.7] - 2026-11-01
+
+### Added
+
+- **The update list names its columns.** Mod, Installed, New and Select, so the box on the right and
+  the name on the left are no longer left to guess.
+
+### Changed
+
+- **Mod icons are smaller and inset from the table edge.** Twelve pixels with a margin, and the name
+  starts at a fixed column instead of hugging the icon.
+
+### Fixed
+
+- **Rescan measures the caches again.** The button asked for the last measurement instead of taking a
+  new one, so the numbers never changed; the measurement now runs on the mod's own worker thread and
+  the menu says it is running while it does.
+- **A build that is already installed is no longer offered under a game-version prefix.** Collective
+  8.72 was offered as `26.3.0-8.72`, which is the same jar under another name.
+
 ## [0.3.6] - 2026-10-31
 
 ### Fixed
