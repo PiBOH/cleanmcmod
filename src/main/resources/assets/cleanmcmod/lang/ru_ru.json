@@ -80,6 +80,7 @@
   "cleanmcmod.settings.explain": "%s: %s",
   "cleanmcmod.settings.language": "Язык",
   "cleanmcmod.settings.language.hint": "Открывает выбор языка игры.",
+  "cleanmcmod.settings.language.auto": "Язык игры",
   "cleanmcmod.settings.off": "✘ ВЫКЛ",
   "cleanmcmod.settings.on": "✔ ВКЛ",
   "cleanmcmod.settings.reset": "Сбросить",
