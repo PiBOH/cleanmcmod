@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). `version.txt` is the single source of
 truth for the version; a new `## [x.y.z]` section is written in the same commit that bumps it.
 
+## [0.3.6] - 2026-10-31
+
+### Fixed
+
+- **The update list shows the mod's real icon, not a blank tile.** Every icon was drawn by sampling
+  only its top left corner, so a 128 pixel image came out as an empty square; each icon is now scaled
+  once to the 16 pixel size a row draws it at.
+- **A row is no longer offered for a file that has no version number.** A mirror that publishes
+  `<26.3/fabric>` or `26.3-fabric` instead of a version produced rows whose only possible outcome was
+  a failed install of a jar that was already there.
+
 ## [0.3.5] - 2026-10-31
 
 ### Fixed

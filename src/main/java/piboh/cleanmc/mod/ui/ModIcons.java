@@ -26,7 +26,7 @@ import java.util.zip.ZipFile;
  */
 public final class ModIcons {
 
-    private static final int ICON_PIXELS = 64;
+    private static final int ICON_PIXELS = 16;
 
     private static final Map<Path, Identifier> CACHE = new HashMap<>();
     private static final Map<Path, Boolean> TRIED = new HashMap<>();
@@ -58,7 +58,7 @@ public final class ModIcons {
                 NativeImage image = NativeImage.read(in);
                 Identifier id = Identifier.of("cleanmcmod", "mod_icon/" + slug(mod, entry.getName()));
                 MinecraftClient.getInstance().getTextureManager()
-                        .registerTexture(id, new NativeImageBackedTexture(() -> "cleanmcmod mod icon", image));
+                        .registerTexture(id, new NativeImageBackedTexture(() -> "cleanmcmod mod icon", shrink(image)));
                 return id;
             }
         } catch (Exception exception) {
@@ -67,6 +67,27 @@ public final class ModIcons {
             CleanMcMod.LOGGER.warn("Could not read the icon of {}: {}", mod.fileName(), exception.toString());
             return null;
         }
+    }
+
+    /**
+     * The icon at the size a row draws it. Mod icons are 64 to 512 pixels wide, and a texture drawn
+     * with a 16 pixel size samples its top left corner only, which is why every row looked blank.
+     */
+    private static NativeImage shrink(NativeImage source) {
+        int size = size();
+        if (source.getWidth() == size && source.getHeight() == size) {
+            return source;
+        }
+        NativeImage target = new NativeImage(size, size, false);
+        for (int y = 0; y < size; y++) {
+            int sourceY = Math.min(source.getHeight() - 1, y * source.getHeight() / size);
+            for (int x = 0; x < size; x++) {
+                int sourceX = Math.min(source.getWidth() - 1, x * source.getWidth() / size);
+                target.setColorArgb(x, y, source.getColorArgb(sourceX, sourceY));
+            }
+        }
+        source.close();
+        return target;
     }
 
     /**
@@ -109,6 +130,6 @@ public final class ModIcons {
 
     /** The size a row draws the icon at, so the loader and the screen cannot disagree. */
     public static int size() {
-        return ICON_PIXELS == 0 ? 16 : 16;
+        return ICON_PIXELS;
     }
 }
