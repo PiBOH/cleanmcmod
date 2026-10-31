@@ -18,6 +18,7 @@ import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
+import piboh.cleanmc.mod.ui.Lang;
 import piboh.cleanmc.mod.update.PendingRemovals;
 
 import java.nio.file.Path;
@@ -74,6 +75,8 @@ public final class CleanMcModClient implements ClientModInitializer {
         // previous session, so the install could not delete them while the game was running.
         PendingRemovals.run(configDir);
         service = new CleanMcModService(gameDir, configDir);
+        // The mod's own language, which is not the game's: see Lang.
+        Lang.select(service.config().language);
 
         String gameVersion = FabricLoader.getInstance().getModContainer("minecraft")
                 .map(container -> container.getMetadata().getVersion().getFriendlyString())
@@ -105,7 +108,7 @@ public final class CleanMcModClient implements ClientModInitializer {
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (screen instanceof TitleScreen) {
                 Screens.getButtons(screen).add(ButtonWidget
-                        .builder(Text.translatable("cleanmcmod.button.open"),
+                        .builder(Lang.text("cleanmcmod.button.open"),
                                 button -> client.setScreen(new CleanMenuScreen(service, updater)))
                         .dimensions(screen.width - 106, 6, 100, 20)
                         .build());
