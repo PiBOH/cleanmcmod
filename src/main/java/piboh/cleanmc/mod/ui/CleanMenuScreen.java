@@ -160,6 +160,18 @@ public class CleanMenuScreen extends Screen {
         this.client.setScreen(this.client.world != null ? null : new TitleScreen());
     }
 
+    /**
+     * Darkens the world instead of blurring it: see {@link ScreenBackdrop}.
+     */
+    @Override
+    public void renderBackground(net.minecraft.client.gui.DrawContext context, int mouseX, int mouseY,
+            float delta) {
+        if (this.client != null && this.client.world == null) {
+            this.renderPanoramaBackground(context, delta);
+        }
+        ScreenBackdrop.dim(context, this.width, this.height);
+    }
+
     @Override
     public boolean shouldPause() {
         return false;
