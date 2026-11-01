@@ -6,6 +6,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import piboh.cleanmc.mod.clean.CacheScan;
 import piboh.cleanmc.mod.clean.CacheTarget;
 import piboh.cleanmc.mod.clean.CleanMcModService;
@@ -173,7 +174,7 @@ public class CacheSettingsScreen extends Screen {
         graphics.fill(left, top, right, top + 1, 0x667FE07F);
         graphics.fill(left, top, left + 1, top + HERO_HEIGHT, 0x337FE07F);
 
-        drawBroom(graphics, left + 8, top + 13);
+        drawIcon(graphics, left + 8, top + 13);
         int textLeft = left + 58;
         int textRight = right - 6;
 
@@ -194,18 +195,19 @@ public class CacheSettingsScreen extends Screen {
                 textRight - textLeft), textLeft, top + 50, Texts.COLOR_OK, false);
     }
 
-    /** A broom, drawn from blocks so the card needs no texture of its own. */
-    private void drawBroom(GuiGraphicsExtractor graphics, int x, int y) {
+    /**
+     * The card slot: the mod's own icon in the frame the drawn broom used to sit in. The texture is
+     * registered once by {@link ModIcons#own()} from the jar itself, so the card and the mod list show
+     * the same image.
+     */
+    private void drawIcon(GuiGraphicsExtractor graphics, int x, int y) {
         graphics.fill(x, y, x + 40, y + 40, 0xAA16301D);
         graphics.fill(x, y, x + 40, y + 1, 0x667FE07F);
         graphics.fill(x, y + 39, x + 40, y + 40, 0x667FE07F);
-        for (int step = 0; step < 7; step++) {
-            graphics.fill(x + 26 - step * 2, y + 6 + step * 2, x + 29 - step * 2, y + 9 + step * 2,
-                    0xFFB8F3C4);
-        }
-        graphics.fill(x + 13, y + 20, x + 22, y + 24, 0xFF7FE07F);
-        for (int bristle = 0; bristle < 5; bristle++) {
-            graphics.fill(x + 10 + bristle * 4, y + 24, x + 13 + bristle * 4, y + 35, 0xFFB8F3C4);
+        Identifier icon = ModIcons.own();
+        if (icon != null) {
+            int size = ModIcons.cardSize();
+            graphics.blit(icon, x + 4, y + 4, 0, 0, size, size, size, size);
         }
     }
 
