@@ -1,5 +1,6 @@
 package piboh.cleanmc.mod.ui;
 
+import net.fabricmc.loader.api.FabricLoader;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -8,6 +9,7 @@ import piboh.cleanmc.mod.CleanMcMod;
 import piboh.cleanmc.mod.update.LocalMod;
 
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -28,8 +30,15 @@ public final class ModIcons {
 
     private static final int ICON_PIXELS = 12;
 
+    /** The size the settings card draws the mod's own icon at. */
+    private static final int CARD_PIXELS = 32;
+
     private static final Map<Path, Identifier> CACHE = new HashMap<>();
     private static final Map<Path, Boolean> TRIED = new HashMap<>();
+
+    private static final Identifier OWN = Identifier.fromNamespaceAndPath("cleanmcmod", "own_icon");
+    private static boolean ownTried;
+    private static Identifier ownId;
 
     private ModIcons() {
     }
@@ -53,6 +62,41 @@ public final class ModIcons {
         return ICON_PIXELS;
     }
 
+    /** The size the card draws the icon at, so the screen and the loader cannot disagree. */
+    public static int cardSize() {
+        return CARD_PIXELS;
+    }
+
+    /**
+     * The mod's own icon, read from {@code assets/cleanmcmod/icon.png} inside this jar: the card shows
+     * the image the game already shows for the mod instead of a second icon drawn by hand. Returns
+     * {@code null} when it cannot be read, and the card keeps its empty frame.
+     */
+    public static Identifier own() {
+        if (ownTried) {
+            return ownId;
+        }
+        ownTried = true;
+        try {
+            Path path = FabricLoader.getInstance().getModContainer("cleanmcmod")
+                    .flatMap(container -> container.findPath("assets/cleanmcmod/icon.png"))
+                    .orElse(null);
+            if (path == null) {
+                return null;
+            }
+            try (InputStream in = Files.newInputStream(path)) {
+                NativeImage image = NativeImage.read(in);
+                Minecraft.getInstance().getTextureManager()
+                        .register(OWN, new DynamicTexture(() -> "cleanmcmod icon",
+                                shrink(image, CARD_PIXELS)));
+            }
+            ownId = OWN;
+        } catch (Exception exception) {
+            CleanMcMod.LOGGER.warn("Could not read the mod icon: {}", exception.toString());
+        }
+        return ownId;
+    }
+
     private static Identifier load(LocalMod mod) {
         try (ZipFile zip = new ZipFile(mod.path().toFile())) {
             ZipEntry entry = findIcon(zip, mod.modId());
@@ -63,7 +107,7 @@ public final class ModIcons {
                 NativeImage image = NativeImage.read(in);
                 Identifier id = Identifier.fromNamespaceAndPath("cleanmcmod", "mod_icon/" + slug(mod, entry.getName()));
                 Minecraft.getInstance().getTextureManager()
-                        .register(id, new DynamicTexture(() -> "cleanmcmod mod icon", shrink(image)));
+                        .register(id, new DynamicTexture(() -> "cleanmcmod mod icon", shrink(image, ICON_PIXELS)));
                 return id;
             }
         } catch (Exception exception) {
@@ -79,8 +123,7 @@ public final class ModIcons {
      * The icon at the size a row draws it. Mod icons are 64 to 512 pixels wide, and a texture drawn
      * with a 16 pixel size samples its top left corner only, which is why every row looked blank.
      */
-    private static NativeImage shrink(NativeImage source) {
-        int size = ICON_PIXELS;
+    private static NativeImage shrink(NativeImage source, int size) {
         if (source.getWidth() == size && source.getHeight() == size) {
             return source;
         }
