@@ -2,10 +2,12 @@ package piboh.cleanmc.mod.ui;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import piboh.cleanmc.mod.clean.CacheScan;
 import piboh.cleanmc.mod.clean.CacheTarget;
 import piboh.cleanmc.mod.clean.CleanMcModService;
@@ -173,7 +175,7 @@ public class CacheSettingsScreen extends Screen {
         context.fill(left, top, right, top + 1, 0x667FE07F);
         context.fill(left, top, left + 1, top + HERO_HEIGHT, 0x337FE07F);
 
-        drawBroom(context, left + 8, top + 13);
+        drawIcon(context, left + 8, top + 13);
         int textLeft = left + 58;
         int textRight = right - 6;
 
@@ -194,18 +196,20 @@ public class CacheSettingsScreen extends Screen {
                 textRight - textLeft), textLeft, top + 50, Texts.COLOR_OK, false);
     }
 
-    /** A broom, drawn from blocks so the card needs no texture of its own. */
-    private void drawBroom(DrawContext context, int x, int y) {
+    /**
+     * The card slot: the mod's own icon in the frame the drawn broom used to sit in. The texture is
+     * registered once by {@link ModIcons#own()} from the jar itself, so the card and the mod list show
+     * the same image.
+     */
+    private void drawIcon(DrawContext context, int x, int y) {
         context.fill(x, y, x + 40, y + 40, 0xAA16301D);
         context.fill(x, y, x + 40, y + 1, 0x667FE07F);
         context.fill(x, y + 39, x + 40, y + 40, 0x667FE07F);
-        for (int step = 0; step < 7; step++) {
-            context.fill(x + 26 - step * 2, y + 6 + step * 2, x + 29 - step * 2, y + 9 + step * 2,
-                    0xFFB8F3C4);
-        }
-        context.fill(x + 13, y + 20, x + 22, y + 24, 0xFF7FE07F);
-        for (int bristle = 0; bristle < 5; bristle++) {
-            context.fill(x + 10 + bristle * 4, y + 24, x + 13 + bristle * 4, y + 35, 0xFFB8F3C4);
+        Identifier icon = ModIcons.own();
+        if (icon != null) {
+            int size = ModIcons.cardSize();
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, icon, x + 4, y + 4, 0f, 0f, size,
+                    size, size, size, 0xFFFFFFFF);
         }
     }
 
