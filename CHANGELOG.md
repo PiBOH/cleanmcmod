@@ -22,7 +22,7 @@ truth for the version; a new `## [x.y.z]` section is written in the same commit 
 
 ### Changed
 
-- **Settings are one page.** The mod card on top names the version, the credits and the space a clean can free right now, with the options in two compact columns under it and the search across all of them, so nothing hides behind a tab.
+- **Settings are one page.** The mod card on top names the version, the credits and the space a clean can free right now, with the options in two compact columns under it and the search across all of them, so nothing hides behind a tab. The card wears the mod's own icon instead of one drawn by hand.
 - **Mod icons are smaller and inset from the table edge.** Twelve pixels with a margin, and the name
   starts at a fixed column instead of hugging the icon.
 
