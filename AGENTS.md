@@ -201,6 +201,26 @@ Refactors happen only when a behaviour must change anyway.
 - Keep `%s` placeholders and the `✔`/`✘` markers; translate the words around
   them. Do not translate mod names, `/cleanmcmod` or the keys `F7`/`F8`.
 
+### Player documentation
+
+- `README.md` at the root is the English page and the reference. Every shipped
+  language has one page under `docs/<locale>/`, named `README.md`, except Italian
+  which is `docs/it_it/LEGGIMI.md`. Adding a file under
+  `assets/cleanmcmod/lang/` means adding its page and its row in `docs/README.md`.
+- Every page opens with the same language switcher (flag, a link per language,
+  the current one in bold), so a player jumps between languages without going
+  back to the index.
+- Every page says that it and the mod's own texts were translated with AI and may
+  contain mistakes, and that the English page wins when they disagree. Never
+  call a translation professional or verified.
+- When a player-visible behaviour changes (a key, a command, a setting, a cache
+  target, a supported version, the install flow), update `README.md` and every
+  `docs/<locale>/` page that describes it in the same commit.
+- Pages use emoji in their headings and no em dashes, like everything else the
+  player reads.
+- `docs/` lives on `main` only: it never affects the jars the version branches
+  build.
+
 ## 7. Versioning and releases
 
 - `version.txt` holds `MAJOR.MINOR.PATCH`. `build.gradle` builds

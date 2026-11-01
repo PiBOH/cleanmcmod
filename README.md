@@ -4,10 +4,11 @@
   <img src="logo.png" alt="CleanMCMod" width="180">
 </p>
 
+🌍 **🇬🇧 English** · [🇩🇪 Deutsch](docs/de_de/README.md) · [🇪🇸 Español](docs/es_es/README.md) · [🇫🇷 Français](docs/fr_fr/README.md) · [🇮🇹 Italiano](docs/it_it/LEGGIMI.md) · [🇯🇵 日本語](docs/ja_jp/README.md) · [🇰🇷 한국어](docs/ko_kr/README.md) · [🇳🇱 Nederlands](docs/nl_nl/README.md) · [🇵🇱 Polski](docs/pl_pl/README.md) · [🇧🇷 Português (Brasil)](docs/pt_br/README.md) · [🇷🇺 Русский](docs/ru_ru/README.md) · [🇹🇷 Türkçe](docs/tr_tr/README.md) · [🇺🇦 Українська](docs/uk_ua/README.md) · [🇨🇳 简体中文](docs/zh_cn/README.md) · [🇹🇼 繁體中文](docs/zh_tw/README.md)
+
 Client-side cache cleaner for Minecraft, the mods you have installed and the
-resource packs they use. Stale caches are what make the game render wrong —
-purple-and-black missing models, textures that never refresh, broken resource
-packs — and deleting them is usually the only fix that helps. CleanMCMod does
+resource packs they use. Stale caches are what make the game render wrong: purple-and-black missing models, textures that never refresh, broken resource
+packs, and deleting them is usually the only fix that helps. CleanMCMod does
 that from one screen, shows what it would remove before removing anything, and
 can update your mods from Modrinth on request.
 
@@ -24,7 +25,7 @@ runs on a dedicated server.
 | server resource-pack cache | re-downloaded from the server |
 | Fabric remapped-jar cache | Loom/Fabric on next launch |
 | Mixin debug output | Mixin, if enabled again |
-| asset indexes / asset objects | **downloaded from Mojang** — off by default |
+| asset indexes / asset objects | **downloaded from Mojang**, off by default |
 | `config/<mod>/**/cache*` | the mod that created it (off by default per folder) |
 
 Every target is measured before it is deleted. Directories are never removed
@@ -55,8 +56,7 @@ A download is verified against the SHA-1 Modrinth publishes, the old jar is
 moved aside, the new one is moved in, and the old jar is restored if anything
 fails. CleanMCMod never updates its own jar while it is loaded.
 
-Offline, unknown project, no matching version, unreadable jar, hash mismatch —
-each leaves `mods/` exactly as it was and shows one readable message.
+Offline, unknown project, no matching version, unreadable jar, hash mismatch: each leaves `mods/` exactly as it was and shows one readable message.
 
 ## Supported versions
 
@@ -88,6 +88,12 @@ game boots normally and no Mod Menu class is loaded.
 Japanese, Korean, Dutch, Polish, Brazilian Portuguese, Russian, Turkish,
 Ukrainian, Simplified Chinese, Traditional Chinese. Every file must carry the
 same key set as `en_us.json`; `AGENTS.md` §6 has the parity check.
+
+Every language also has a page under [`docs/`](docs/README.md) with the same
+instructions for a player, and each page carries a switcher that jumps to any
+other language. Both the mod's texts and those pages were translated with the
+help of AI: a wording can still be wrong, and the English text is the reference
+when they disagree.
 
 ## Building from source
 
@@ -147,4 +153,4 @@ maintains and whose original author is
 
 ## License
 
-MIT — see `LICENSE`.
+MIT, see `LICENSE`.
