@@ -9,6 +9,7 @@ import net.minecraft.network.chat.Component;
 import piboh.cleanmc.mod.clean.CacheScan;
 import piboh.cleanmc.mod.clean.CacheTarget;
 import piboh.cleanmc.mod.clean.CleanMcModService;
+import piboh.cleanmc.mod.clean.CleanReport;
 import piboh.cleanmc.mod.clean.TargetState;
 import piboh.cleanmc.mod.config.CleanMcModConfig;
 
@@ -19,12 +20,12 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * Settings in two panes: the sections on the left, the rows of the chosen one on the right, and
- * About as a page of its own instead of four lines at the bottom of a list.
+ * Settings as one page: the mod card on top, the options in two compact columns under it.
  *
- * <p>The section list and the About page are drawn and hit tested here rather than built as
- * widgets: a widget cannot show the selected background or the per-section count, and every row
- * that does carry a control still has one, so nothing about a toggle stops being a normal button.</p>
+ * <p>There is no side column and nothing is hit tested by hand: every control is a widget, which is
+ * the only shape that survives the input changes between 1.21.8, 1.21.9 and 26.x without a copy of
+ * this screen per API. The card carries what About used to be a tab for: name, version, what the mod
+ * does, who writes it, the size it can free and the two links.</p>
  *
  * <p>Every change is written to disk immediately through {@link CleanMcModService#saveConfig()}; a
  * row that differs from the default is marked, so a reset is always one click away.</p>
@@ -32,25 +33,23 @@ import java.util.function.Supplier;
 public class CacheSettingsScreen extends Screen {
 
     private static final int MARGIN = 12;
-    private static final int NAV_WIDTH = 138;
-    private static final int NAV_TOP = 52;
-    private static final int NAV_ROW = 20;
-    private static final int ROW_HEIGHT = 22;
-    private static final int CONTROL_WIDTH = 78;
-    private static final int CONTENT_TOP = 56;
-    private static final int FOOTER = 58;
+    private static final int TITLE_Y = 12;
+    private static final int HERO_TOP = 28;
+    private static final int HERO_HEIGHT = 66;
+    private static final int ROW = 18;
+    private static final int HEADER = 16;
+    private static final int CONTROL = 60;
+    private static final int FOOTER = 54;
 
-    /** The sections in the order they are listed, which is also the order of the rows. */
-    private static final List<String> SECTIONS = List.of(
+    /** The sections in the order they are listed. The two halves below split them across columns. */
+    private static final List<String> LEFT_SECTIONS = List.of(
             "cleanmcmod.category.vanilla",
-            "cleanmcmod.category.loader",
+            "cleanmcmod.category.loader");
+    private static final List<String> RIGHT_SECTIONS = List.of(
             "cleanmcmod.category.map",
             "cleanmcmod.category.mod",
             "cleanmcmod.settings.tab.advanced",
-            "cleanmcmod.settings.section.interface",
-            "cleanmcmod.settings.section.about");
-
-    private static final String ABOUT = "cleanmcmod.settings.section.about";
+            "cleanmcmod.settings.section.interface");
 
     private enum Kind {
         TOGGLE, LANGUAGE
@@ -60,9 +59,13 @@ public class CacheSettingsScreen extends Screen {
             boolean defaultValue, Supplier<Boolean> getter, Consumer<Boolean> setter) {
     }
 
+    private record Header(String key, int x, int y) {
+    }
+
     private static final class Row {
         private final Entry entry;
         private final Button button;
+        private int x;
         private int y;
         private boolean visible;
 
@@ -76,10 +79,10 @@ public class CacheSettingsScreen extends Screen {
     private final CleanMcModService service;
     private final CleanMcModConfig defaults = new CleanMcModConfig();
     private final List<Row> rows = new ArrayList<>();
+    private final List<Header> headers = new ArrayList<>();
 
     private EditBox search;
     private String filter = "";
-    private String section = SECTIONS.get(0);
     private double scroll;
     private int maxScroll;
     private CacheScan scan;
@@ -96,9 +99,9 @@ public class CacheSettingsScreen extends Screen {
         this.scan = service.scan();
         this.rows.clear();
 
-        int searchWidth = Math.min(180, Math.max(120, this.width / 4));
+        int searchWidth = Math.min(170, Math.max(110, this.width / 4));
         this.search = new EditBox(this.font, this.width - MARGIN - searchWidth,
-                CONTENT_TOP - 30, searchWidth, 18, Lang.text("cleanmcmod.settings.search"));
+                TITLE_Y - 3, searchWidth, 16, Lang.text("cleanmcmod.settings.search"));
         this.search.setHint(Lang.text("cleanmcmod.settings.search"));
         this.search.setValue(this.filter);
         this.search.setResponder(text -> {
@@ -116,7 +119,7 @@ public class CacheSettingsScreen extends Screen {
                             pressed.setMessage(stateLabel(entry));
                             layout();
                         })
-                        .bounds(this.width - MARGIN - CONTROL_WIDTH, CONTENT_TOP, CONTROL_WIDTH, 18)
+                        .bounds(MARGIN, HERO_TOP, CONTROL, 16)
                         .build();
                 case LANGUAGE -> Button.builder(languageLabel(), pressed -> {
                             String next = Lang.next(service.config().language);
@@ -125,7 +128,7 @@ public class CacheSettingsScreen extends Screen {
                             service.saveConfig();
                             pressed.setMessage(languageLabel());
                         })
-                        .bounds(this.width - MARGIN - CONTROL_WIDTH, CONTENT_TOP, CONTROL_WIDTH, 18)
+                        .bounds(MARGIN, HERO_TOP, CONTROL, 16)
                         .build();
             };
             this.rows.add(new Row(entry, button));
@@ -155,142 +158,108 @@ public class CacheSettingsScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
-        graphics.text(this.font, this.title, MARGIN, 16, 0xFFFFFFFF, false);
-
-        int bottom = this.height - FOOTER;
-        graphics.fill(MARGIN, CONTENT_TOP - 6, this.width - MARGIN, bottom + 4, 0x22101010);
-        renderNav(graphics);
-
-        if (this.section.equals(ABOUT) && this.filter.isBlank()) {
-            renderAbout(graphics);
-        } else {
-            renderRows(graphics, mouseX, mouseY, bottom);
-        }
-
+        graphics.text(this.font, this.title, MARGIN, TITLE_Y, 0xFFFFFFFF, false);
+        renderHero(graphics);
+        renderColumns(graphics, mouseX, mouseY);
         renderExplanation(graphics);
     }
 
-    /** The section list: selected one lit, with how many options it holds. */
-    private void renderNav(GuiGraphicsExtractor graphics) {
-        int x = MARGIN;
-        int y = NAV_TOP;
-        for (String key : SECTIONS) {
-            boolean active = key.equals(this.section) && this.filter.isBlank();
-            if (active) {
-                graphics.fill(x - 4, y - 2, x + NAV_WIDTH, y + NAV_ROW - 4, 0x552F6B3D);
-                graphics.fill(x - 4, y - 2, x - 2, y + NAV_ROW - 4, 0xFF7FE07F);
-            }
-            graphics.text(this.font, Lang.text(key), x,
-                    y + 3, active ? 0xFFDCFFE3 : 0xFFB7BFCC, false);
-            int count = count(key);
-            if (count > 0) {
-                String number = String.valueOf(count);
-                graphics.text(this.font, Component.literal(number),
-                        x + NAV_WIDTH - 10 - this.font.width(number), y + 3,
-                        Texts.COLOR_INFO, false);
-            }
-            y += NAV_ROW;
+    /** The card: the mod, its version, what it frees right now, and where it comes from. */
+    private void renderHero(GuiGraphicsExtractor graphics) {
+        int left = MARGIN;
+        int right = this.width - MARGIN;
+        int top = HERO_TOP;
+        graphics.fill(left, top, right, top + HERO_HEIGHT, 0x55101418);
+        graphics.fill(left, top, right, top + 1, 0x667FE07F);
+        graphics.fill(left, top, left + 1, top + HERO_HEIGHT, 0x337FE07F);
+
+        drawBroom(graphics, left + 8, top + 13);
+        int textLeft = left + 58;
+        int textRight = right - 6;
+
+        Component name = Component.literal("CleanMCMod " + version());
+        graphics.text(this.font, name, textLeft, top + 8, 0xFFFFFFFF, false);
+        Component stats = Lang.text("cleanmcmod.about.stats", found(), presentCategories(),
+                Lang.SHIPPED.size());
+        int statsWidth = this.font.width(stats);
+        if (textLeft + this.font.width(name) + 12 < textRight - statsWidth) {
+            graphics.text(this.font, stats, textRight - statsWidth, top + 8,
+                    Texts.COLOR_INFO, false);
+        }
+        graphics.text(this.font, trim(Lang.text("cleanmcmod.about.tagline"),
+                textRight - textLeft), textLeft, top + 22, Texts.COLOR_INFO, false);
+        graphics.text(this.font, trim(Lang.text("cleanmcmod.about.creator"),
+                textRight - textLeft), textLeft, top + 36, 0xFFFFFFFF, false);
+        graphics.text(this.font, trim(Lang.text("cleanmcmod.about.links"),
+                textRight - textLeft), textLeft, top + 50, Texts.COLOR_OK, false);
+    }
+
+    /** A broom, drawn from blocks so the card needs no texture of its own. */
+    private void drawBroom(GuiGraphicsExtractor graphics, int x, int y) {
+        graphics.fill(x, y, x + 40, y + 40, 0xAA16301D);
+        graphics.fill(x, y, x + 40, y + 1, 0x667FE07F);
+        graphics.fill(x, y + 39, x + 40, y + 40, 0x667FE07F);
+        for (int step = 0; step < 7; step++) {
+            graphics.fill(x + 26 - step * 2, y + 6 + step * 2, x + 29 - step * 2, y + 9 + step * 2,
+                    0xFFB8F3C4);
+        }
+        graphics.fill(x + 13, y + 20, x + 22, y + 24, 0xFF7FE07F);
+        for (int bristle = 0; bristle < 5; bristle++) {
+            graphics.fill(x + 10 + bristle * 4, y + 24, x + 13 + bristle * 4, y + 35, 0xFFB8F3C4);
         }
     }
 
-    private void renderRows(GuiGraphicsExtractor graphics, int mouseX, int mouseY, int bottom) {
-        int left = paneLeft();
-        int contentRight = this.width - MARGIN;
+    private void renderColumns(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        int bottom = this.height - FOOTER;
         this.hovered = null;
-
-        String shownSection = null;
+        for (Header header : headers) {
+            if (header.y() < HERO_TOP + HERO_HEIGHT || header.y() >= bottom) {
+                continue;
+            }
+            graphics.text(this.font, Lang.text(header.key()), header.x(), header.y() + 2,
+                    Texts.COLOR_OK, false);
+        }
         for (Row row : rows) {
             if (!row.visible) {
                 continue;
             }
             int y = row.y;
-            if (!row.entry.sectionKey().equals(shownSection)) {
-                shownSection = row.entry.sectionKey();
-                graphics.text(this.font, Lang.text(shownSection), left, y - 12,
-                        Texts.COLOR_OK, false);
-                graphics.fill(left, y - 4, contentRight, y - 3, 0x33FFFFFF);
-            }
-            boolean isHovered = mouseX >= left && mouseX <= contentRight
-                    && mouseY >= y && mouseY < y + ROW_HEIGHT;
+            boolean isHovered = mouseX >= row.x && mouseX <= row.x + columnWidth()
+                    && mouseY >= y && mouseY < y + ROW;
             if (isHovered) {
                 this.hovered = row;
-                graphics.fill(left - 4, y, contentRight, y + ROW_HEIGHT - 2, 0x22FFFFFF);
+                graphics.fill(row.x - 2, y - 1, row.x + columnWidth(), y + ROW - 2, 0x22FFFFFF);
             }
             boolean modified = row.entry.kind() == Kind.TOGGLE
                     && row.entry.getter().get() != row.entry.defaultValue();
             Component label = Lang.text(row.entry.labelKey());
             Component name = modified ? Component.literal("● ").append(label) : label;
-            graphics.text(this.font, name, left, y + 5, 0xFFFFFFFF, false);
+            int room = columnWidth() - CONTROL - 8;
+            graphics.text(this.font,
+                    Component.literal(this.font.plainSubstrByWidth(name.getString(), room)),
+                    row.x, y + 4, 0xFFFFFFFF, false);
 
             Component detail = measure(row.entry);
             if (detail != null) {
                 int width = this.font.width(detail);
-                int limit = contentRight - CONTROL_WIDTH - 10;
-                if (limit - width > left + 60) {
-                    graphics.text(this.font, detail, limit - width, y + 5,
+                int limit = row.x + columnWidth() - CONTROL - 6;
+                if (limit - width > row.x + 40) {
+                    graphics.text(this.font, detail, limit - width, y + 4,
                             Texts.COLOR_INFO, false);
                 }
             }
         }
 
         if (maxScroll > 0) {
-            int trackTop = CONTENT_TOP;
-            int trackHeight = bottom - CONTENT_TOP;
-            int thumbHeight = Math.max(16, (int) (trackHeight
+            int trackTop = HERO_TOP + HERO_HEIGHT + 6;
+            int trackHeight = Math.max(10, bottom - trackTop);
+            int thumbHeight = Math.max(14, (int) (trackHeight
                     * (trackHeight / (double) (trackHeight + maxScroll))));
             int thumbTop = trackTop + (int) ((trackHeight - thumbHeight) * (scroll / maxScroll));
-            graphics.fill(contentRight + 2, trackTop, contentRight + 4, trackTop + trackHeight, 0x22FFFFFF);
-            graphics.fill(contentRight + 2, thumbTop, contentRight + 4, thumbTop + thumbHeight, 0x88FFFFFF);
+            int x = this.width - MARGIN + 2;
+            graphics.fill(x, trackTop, x + 2, trackTop + trackHeight, 0x22FFFFFF);
+            graphics.fill(x, thumbTop, x + 2, thumbTop + thumbHeight, 0x88FFFFFF);
         }
-    }
-
-    /** About as a page: the mod, its version, who writes it and where it comes from. */
-    private void renderAbout(GuiGraphicsExtractor graphics) {
-        int left = paneLeft();
-        int right = this.width - MARGIN;
-        int top = CONTENT_TOP;
-        int cardBottom = top + 84;
-        graphics.fill(left - 4, top - 6, right, cardBottom, 0xB0101418);
-        graphics.fill(left - 4, top - 6, right, top - 5, 0x557FE07F);
-
-        drawBroom(graphics, left + 4, top + 4);
-        int textLeft = left + 54;
-        graphics.text(this.font, Component.literal("CleanMCMod"), textLeft, top + 4,
-                0xFFFFFFFF, false);
-        graphics.text(this.font, Lang.text("cleanmcmod.about.version", version()),
-                textLeft, top + 17, Texts.COLOR_OK, false);
-        graphics.text(this.font, Lang.text("cleanmcmod.about.creator"),
-                textLeft, top + 32, 0xFFFFFFFF, false);
-        graphics.text(this.font, trim(Lang.text("cleanmcmod.about.inspired"),
-                right - textLeft - 6), textLeft, top + 44, Texts.COLOR_INFO, false);
-
-        int y = cardBottom + 10;
-        int width = right - left;
-        for (String key : List.of("cleanmcmod.about.tagline", "cleanmcmod.about.client_only",
-                "cleanmcmod.about.links")) {
-            graphics.text(this.font, trim(Lang.text(key), width), left, y,
-                    key.endsWith("links") ? Texts.COLOR_INFO : 0xFFE8EDF4, false);
-            y += 12;
-        }
-    }
-
-    /** A broom, drawn from blocks so the About page needs no texture of its own. */
-    private void drawBroom(GuiGraphicsExtractor graphics, int x, int y) {
-        graphics.fill(x, y, x + 42, y + 42, 0xFF16301D);
-        graphics.fill(x, y, x + 42, y + 1, 0x667FE07F);
-        graphics.fill(x, y + 41, x + 42, y + 42, 0x667FE07F);
-        for (int step = 0; step < 7; step++) {
-            graphics.fill(x + 27 - step * 2, y + 7 + step * 2, x + 30 - step * 2, y + 10 + step * 2,
-                    0xFFB8F3C4);
-        }
-        graphics.fill(x + 14, y + 21, x + 23, y + 25, 0xFF7FE07F);
-        for (int bristle = 0; bristle < 5; bristle++) {
-            graphics.fill(x + 11 + bristle * 4, y + 25, x + 14 + bristle * 4, y + 37, 0xFFB8F3C4);
-        }
-    }
-
-    private Component trim(Component text, int width) {
-        return Component.literal(this.font.plainSubstrByWidth(text.getString(), width));
     }
 
     private void renderExplanation(GuiGraphicsExtractor graphics) {
@@ -315,98 +284,84 @@ public class CacheSettingsScreen extends Screen {
         }
         graphics.centeredText(this.font,
                 Component.literal(this.font.plainSubstrByWidth(line.getString(), this.width - 2 * MARGIN)),
-                this.width / 2, this.height - 50, color);
-    }
-
-    @Override
-    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
-        double mouseX = event.x();
-        double mouseY = event.y();
-        if (event.button() == 0 && this.filter.isBlank()
-                && mouseX >= MARGIN && mouseX < MARGIN + NAV_WIDTH) {
-            int y = NAV_TOP;
-            for (String key : SECTIONS) {
-                if (mouseY >= y - 2 && mouseY < y + NAV_ROW - 4) {
-                    if (!key.equals(this.section)) {
-                        this.section = key;
-                        this.scroll = 0;
-                        layout();
-                    }
-                    return true;
-                }
-                y += NAV_ROW;
-            }
-        }
-        return super.mouseClicked(event, doubleClick);
+                this.width / 2, this.height - 46, color);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount,
             double verticalAmount) {
         if (maxScroll > 0) {
-            this.scroll = Math.max(0, Math.min(maxScroll, this.scroll - verticalAmount * ROW_HEIGHT));
+            this.scroll = Math.max(0, Math.min(maxScroll, this.scroll - verticalAmount * ROW));
             layout();
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
-    /** Places the rows of the chosen section, hiding the ones scrolled out of view. */
+    /** Places the rows in one or two columns, hiding the ones scrolled out of view. */
     private void layout() {
-        int bottom = this.height - FOOTER;
-        int y = CONTENT_TOP - (int) scroll;
         for (Row row : rows) {
             row.visible = false;
             row.button.visible = false;
-            if (!shown(row.entry)) {
-                continue;
-            }
-            row.y = y;
-            row.visible = y + ROW_HEIGHT > CONTENT_TOP && y < bottom;
-            row.button.setX(this.width - MARGIN - CONTROL_WIDTH);
-            row.button.setY(y + 2);
-            row.button.setMessage(row.entry.kind() == Kind.TOGGLE
-                    ? stateLabel(row.entry)
-                    : languageLabel());
-            row.button.visible = row.visible;
-            y += ROW_HEIGHT;
         }
-        int contentHeight = y + (int) scroll - CONTENT_TOP;
-        this.maxScroll = Math.max(0, contentHeight - (bottom - CONTENT_TOP));
+        headers.clear();
+        int top = HERO_TOP + HERO_HEIGHT + 8;
+        int width = this.width - 2 * MARGIN;
+        boolean twoColumns = width >= 380 && this.filter.isBlank();
+        int column = columnWidth();
+        int leftEnd = place(LEFT_SECTIONS, MARGIN, column, top);
+        int rightEnd = twoColumns
+                ? place(RIGHT_SECTIONS, MARGIN + column + 10, column, top)
+                : place(RIGHT_SECTIONS, MARGIN, column, leftEnd);
+        int contentBottom = Math.max(leftEnd, rightEnd);
+        int viewport = Math.max(10, (this.height - FOOTER) - top);
+        this.maxScroll = Math.max(0, (contentBottom - top) - viewport);
         if (scroll > maxScroll) {
             scroll = maxScroll;
         }
     }
 
-    /**
-     * A row is shown when it belongs to the open section, or when the search matches it: the search
-     * looks through every section, because hiding a match behind the wrong tab is worse than a list
-     * that ignores the navigation for as long as it has a query.
-     */
-    private boolean shown(Entry entry) {
-        if (!this.filter.isBlank()) {
-            return matches(entry);
+    /** Lays one column out from an unscrolled y and returns the unscrolled y it ends at. */
+    private int place(List<String> sections, int x, int width, int startY) {
+        int y = startY - (int) scroll;
+        for (String section : sections) {
+            boolean titled = false;
+            for (Row row : rows) {
+                if (!row.entry.sectionKey().equals(section) || !matches(row.entry)) {
+                    continue;
+                }
+                if (!titled) {
+                    headers.add(new Header(section, x, y));
+                    titled = true;
+                    y += HEADER;
+                }
+                row.x = x;
+                row.y = y;
+                row.visible = y + ROW > HERO_TOP + HERO_HEIGHT && y < this.height - FOOTER;
+                row.button.setX(x + width - CONTROL);
+                row.button.setY(y);
+                row.button.setMessage(row.entry.kind() == Kind.TOGGLE
+                        ? stateLabel(row.entry)
+                        : languageLabel());
+                row.button.visible = row.visible;
+                y += ROW;
+            }
         }
-        return entry.sectionKey().equals(this.section) && !this.section.equals(ABOUT);
+        return y + (int) scroll;
+    }
+
+    /** How wide a row is: half the page on a wide window, the whole page on a narrow one. */
+    private int columnWidth() {
+        int width = this.width - 2 * MARGIN;
+        return width >= 380 && this.filter.isBlank() ? (width - 10) / 2 : width;
     }
 
     private boolean matches(Entry entry) {
+        if (this.filter.isBlank()) {
+            return true;
+        }
         String needle = this.filter.trim().toLowerCase(Locale.ROOT);
         return Lang.text(entry.labelKey()).getString().toLowerCase(Locale.ROOT).contains(needle);
-    }
-
-    private int count(String sectionKey) {
-        int count = 0;
-        for (Entry entry : entries()) {
-            if (entry.sectionKey().equals(sectionKey)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private int paneLeft() {
-        return MARGIN + NAV_WIDTH + 12;
     }
 
     private Component stateLabel(Entry option) {
@@ -433,7 +388,20 @@ public class CacheSettingsScreen extends Screen {
         if (files == 0) {
             return Lang.text("cleanmcmod.status.missing");
         }
-        return Component.literal(files + " · " + piboh.cleanmc.mod.clean.CleanReport.formatBytes(bytes));
+        return Component.literal(files + " · " + CleanReport.formatBytes(bytes));
+    }
+
+    /** What the last scan found, for the card: the whole answer at a glance. */
+    private String found() {
+        return this.scan == null ? CleanReport.formatBytes(0) : CleanReport.formatBytes(this.scan.bytes());
+    }
+
+    private int presentCategories() {
+        return this.scan == null ? 0 : this.scan.presentCount();
+    }
+
+    private Component trim(Component text, int width) {
+        return Component.literal(this.font.plainSubstrByWidth(text.getString(), Math.max(20, width)));
     }
 
     private List<CacheTarget> targetsFor(Entry option) {

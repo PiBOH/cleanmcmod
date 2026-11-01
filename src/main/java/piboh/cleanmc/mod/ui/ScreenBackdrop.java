@@ -3,19 +3,19 @@ package piboh.cleanmc.mod.ui;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
- * The darkening behind our screens.
+ * The dimming behind our screens.
  *
  * <p>Minecraft's menu background blurs the whole frame with a multi-pass shader on every frame.
- * These screens only need the world dimmed to read text on it, so they draw the same gradient the
- * game draws after the blur and skip the blur pass entirely.</p>
+ * These screens only need the world dimmed to read text on it, so they draw a translucent gradient
+ * and skip the blur and the black-out entirely.</p>
  */
 final class ScreenBackdrop {
 
     private ScreenBackdrop() {
     }
 
-    /** The two ends of the gradient the game itself uses. */
+    /** Light enough that the world still shows through. */
     static void dim(GuiGraphicsExtractor graphics, int width, int height) {
-        graphics.fillGradient(0, 0, width, height, 0xC0101010, 0xD0101010);
+        graphics.fillGradient(0, 0, width, height, 0x30101010, 0x50101010);
     }
 }
