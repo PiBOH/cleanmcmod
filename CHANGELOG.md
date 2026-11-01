@@ -22,11 +22,15 @@ truth for the version; a new `## [x.y.z]` section is written in the same commit 
 
 ### Changed
 
+- **Settings are one page.** The mod card on top names the version, the credits and the space a clean can free right now, with the options in two compact columns under it and the search across all of them, so nothing hides behind a tab. The card wears the mod's own icon instead of one drawn by hand.
 - **Mod icons are smaller and inset from the table edge.** Twelve pixels with a margin, and the name
   starts at a fixed column instead of hugging the icon.
 
 ### Fixed
 
+- **The live line under the bar also appears during an update check**, naming the source being
+  asked, and it stays on screen when the job ends instead of vanishing on its own.
+- **Menus no longer cost frames.** Every menu of the mod inherited the game's full-screen blur, which runs a multi-pass shader on each frame; they now draw the same darkening without it.
 - **Rescan no longer freezes the menu.** The measurement did run again, but on the render thread, so
   the game stopped for the whole walk and, because nothing had changed on disk, the numbers looked
   identical; it now runs on the mod's own worker thread and the menu says it is running while it
