@@ -200,6 +200,7 @@ public abstract class AbstractUpdatesScreen extends Screen {
             renderProgress(context, snapshot);
         } else {
             shownProgress = 0;
+            renderStatus(context);
         }
     }
 
@@ -226,6 +227,17 @@ public abstract class AbstractUpdatesScreen extends Screen {
                     Text.literal(this.textRenderer.trimToWidth(status, width)), this.width / 2, y + 22,
                     Texts.COLOR_INFO);
         }
+    }
+
+    /** The last line the worker wrote, kept on screen after the job ended. */
+    private void renderStatus(DrawContext context) {
+        String status = service.status();
+        if (status == null || status.isBlank()) {
+            return;
+        }
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                Text.literal(this.textRenderer.trimToWidth(status, listWidth())), this.width / 2, 52,
+                Texts.COLOR_INFO);
     }
 
     private void updateButtons(ModUpdaterService.Snapshot snapshot) {
@@ -391,6 +403,18 @@ public abstract class AbstractUpdatesScreen extends Screen {
         if (this.client != null) {
             this.client.setScreen(this.parent);
         }
+    }
+
+    /**
+     * Darkens the world instead of blurring it: see {@link ScreenBackdrop}.
+     */
+    @Override
+    public void renderBackground(net.minecraft.client.gui.DrawContext context, int mouseX, int mouseY,
+            float delta) {
+        if (this.client != null && this.client.world == null) {
+            this.renderPanoramaBackground(context, delta);
+        }
+        ScreenBackdrop.dim(context, this.width, this.height);
     }
 
     @Override
