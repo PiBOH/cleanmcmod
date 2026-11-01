@@ -123,10 +123,28 @@ public final class ModIcons {
         }
         NativeImage target = new NativeImage(size, size, false);
         for (int y = 0; y < size; y++) {
-            int sourceY = Math.min(source.getHeight() - 1, y * source.getHeight() / size);
+            int fromY = y * source.getHeight() / size;
+            int toY = Math.max(fromY + 1, (y + 1) * source.getHeight() / size);
             for (int x = 0; x < size; x++) {
-                int sourceX = Math.min(source.getWidth() - 1, x * source.getWidth() / size);
-                target.setColorArgb(x, y, source.getColorArgb(sourceX, sourceY));
+                int fromX = x * source.getWidth() / size;
+                int toX = Math.max(fromX + 1, (x + 1) * source.getWidth() / size);
+                int alpha = 0;
+                int first = 0;
+                int second = 0;
+                int third = 0;
+                for (int sourceY = fromY; sourceY < toY; sourceY++) {
+                    for (int sourceX = fromX; sourceX < toX; sourceX++) {
+                        int pixel = source.getColorArgb(sourceX, sourceY);
+                        alpha += pixel >>> 24 & 0xFF;
+                        first += pixel >> 16 & 0xFF;
+                        second += pixel >> 8 & 0xFF;
+                        third += pixel & 0xFF;
+                    }
+                }
+                int count = (toY - fromY) * (toX - fromX);
+                target.setColorArgb(x, y,
+                        (alpha / count) << 24 | (first / count) << 16
+                                | (second / count) << 8 | third / count);
             }
         }
         source.close();
