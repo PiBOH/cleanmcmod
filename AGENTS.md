@@ -181,9 +181,8 @@ Refactors happen only when a behaviour must change anyway.
   `es-rUS`→`es_mx`, `en-rCA`→`en_ca`, `fil`→`fil_ph`. Android qualifiers with
   no Minecraft equivalent (`as`, `bn`, `bn-rIN`, `km`, `ml`, `mte`, `pa`,
   `te`, `wae`) cannot be shipped: the game would never load them.
-- New keys are added to every file in the same commit. `scripts/update_lang.py`
-  holds the 0.3.0 key set and can be re-run; it is a helper, not a generator —
-  translate by hand when a key is new.
+- New keys are added to every file in the same commit, translated by hand: there
+  is no generator script in this repository.
 - Parity check (run before every commit that touches a lang file):
 
   ```bash
