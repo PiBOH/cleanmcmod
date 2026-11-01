@@ -15,7 +15,8 @@ import java.util.function.BiConsumer;
  * screen can say so instead of claiming everything is up to date. Progress is reported per source,
  * which is the only step this class can genuinely measure.</p>
  */
-public final class UpdateSources implements ModUpdaterService.Checker, ModUpdaterService.ProgressAware {
+public final class UpdateSources implements ModUpdaterService.Checker, ModUpdaterService.ProgressAware,
+        ModUpdaterService.StatusAware {
 
     /** One named source, so a failure can be attributed to it. */
     public record Source(ModSource id, ModUpdaterService.Checker checker) {
@@ -28,6 +29,7 @@ public final class UpdateSources implements ModUpdaterService.Checker, ModUpdate
     private final List<Source> sources;
 
     private volatile List<Failure> failures = List.of();
+    private volatile String line = "";
     private volatile BiConsumer<Integer, Integer> progress = (done, total) -> {
     };
 
@@ -53,6 +55,12 @@ public final class UpdateSources implements ModUpdaterService.Checker, ModUpdate
         } : listener;
     }
 
+    /** The source being asked right now, so the screen can show a live line during a check. */
+    @Override
+    public String statusLine() {
+        return line;
+    }
+
     @Override
     public List<ModUpdate> check(List<LocalMod> mods) throws IOException, InterruptedException {
         List<ModUpdate> found = new ArrayList<>();
@@ -61,6 +69,7 @@ public final class UpdateSources implements ModUpdaterService.Checker, ModUpdate
         progress.accept(0, total);
         for (int index = 0; index < sources.size(); index++) {
             Source source = sources.get(index);
+            line = source.id().tag() + "  " + (index + 1) + "/" + total;
             try {
                 found.addAll(source.checker().check(mods));
             } catch (InterruptedException e) {
