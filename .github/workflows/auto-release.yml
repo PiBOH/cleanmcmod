@@ -185,8 +185,7 @@ jobs:
           EXPECTED=$(( $(printf '%s' "$BRANCHES" | tr -cd ',' | wc -c) + 1 ))
           if [[ ${#JARS[@]} -ne $EXPECTED ]]; then
             echo "Expected ${EXPECTED} jars, one per branch, collected ${#JARS[@]}." >&2
-            printf ' - %s
-' "${JARS[@]}" >&2
+            printf ' - %s\n' "${JARS[@]}" >&2
             exit 1
           fi
           printf 'Publishing %d jar(s):\n' "${#JARS[@]}"

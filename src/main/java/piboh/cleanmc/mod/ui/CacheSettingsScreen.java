@@ -29,7 +29,7 @@ import java.util.function.Supplier;
  * <p>Every change is written to disk immediately through {@link CleanMcModService#saveConfig()}; a
  * row that differs from the default is marked, so a reset is always one click away.</p>
  */
-public class CacheSettingsScreen extends Screen {
+public class CacheSettingsScreen extends NavScreen {
 
     private static final int MARGIN = 12;
     private static final int NAV_WIDTH = 138;
@@ -318,8 +318,9 @@ public class CacheSettingsScreen extends Screen {
                 this.width / 2, this.height - 50, color);
     }
 
+    /** The section list is drawn, not built from widgets, so it is hit tested here. */
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean navClick(double mouseX, double mouseY, int button) {
         if (button == 0 && this.filter.isBlank()
                 && mouseX >= MARGIN && mouseX < MARGIN + NAV_WIDTH) {
             int y = NAV_TOP;
@@ -335,7 +336,7 @@ public class CacheSettingsScreen extends Screen {
                 y += NAV_ROW;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return false;
     }
 
     @Override
