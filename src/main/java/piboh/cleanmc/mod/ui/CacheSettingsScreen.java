@@ -2,54 +2,72 @@ package piboh.cleanmc.mod.ui;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import piboh.cleanmc.mod.clean.CacheScan;
 import piboh.cleanmc.mod.clean.CacheTarget;
 import piboh.cleanmc.mod.clean.CleanMcModService;
+import piboh.cleanmc.mod.clean.CleanReport;
 import piboh.cleanmc.mod.clean.TargetState;
 import piboh.cleanmc.mod.config.CleanMcModConfig;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * Settings in the layout Sodium uses: one scrolling page with a search field on top, a header per
- * group, and one row per option with its control on the right. There is no side column, so nothing
- * in this screen depends on a hit test that a widget could swallow.
+ * Settings as one page: the mod card on top, the options in two compact columns under it.
  *
- * <p>The bottom group is About, which names the creator and the mods this one took its layout and
- * its update list from, and the Interface group carries the language row. Every change is written to
- * disk immediately through {@link CleanMcModService#saveConfig()}; a row that differs from the
- * default is marked, so a reset is always one click away.</p>
+ * <p>There is no side column and nothing is hit tested by hand: every control is a widget, which is
+ * the only shape that survives the input changes between 1.21.8, 1.21.9 and 26.x without a copy of
+ * this screen per API. The card carries what About used to be a tab for: name, version, what the mod
+ * does, who writes it, the size it can free and the two links.</p>
+ *
+ * <p>Every change is written to disk immediately through {@link CleanMcModService#saveConfig()}; a
+ * row that differs from the default is marked, so a reset is always one click away.</p>
  */
 public class CacheSettingsScreen extends Screen {
 
     private static final int MARGIN = 12;
-    private static final int ROW_HEIGHT = 22;
-    private static final int HEADER_HEIGHT = 22;
-    private static final int CONTROL_WIDTH = 78;
-    private static final int CONTENT_TOP = 56;
-    private static final int FOOTER = 58;
+    private static final int TITLE_Y = 12;
+    private static final int HERO_TOP = 28;
+    private static final int HERO_HEIGHT = 66;
+    private static final int ROW = 18;
+    private static final int HEADER = 16;
+    private static final int CONTROL = 60;
+    private static final int FOOTER = 54;
+
+    /** The sections in the order they are listed. The two halves below split them across columns. */
+    private static final List<String> LEFT_SECTIONS = List.of(
+            "cleanmcmod.category.vanilla",
+            "cleanmcmod.category.loader");
+    private static final List<String> RIGHT_SECTIONS = List.of(
+            "cleanmcmod.category.map",
+            "cleanmcmod.category.mod",
+            "cleanmcmod.settings.tab.advanced",
+            "cleanmcmod.settings.section.interface");
 
     private enum Kind {
-        TOGGLE, LANGUAGE, INFO
+        TOGGLE, LANGUAGE
     }
 
     private record Entry(String labelKey, String sectionKey, Kind kind, String targetPrefix,
             boolean defaultValue, Supplier<Boolean> getter, Consumer<Boolean> setter) {
     }
 
+    private record Header(String key, int x, int y) {
+    }
+
     private static final class Row {
         private final Entry entry;
         private final ButtonWidget button;
+        private int x;
         private int y;
         private boolean visible;
 
@@ -63,7 +81,7 @@ public class CacheSettingsScreen extends Screen {
     private final CleanMcModService service;
     private final CleanMcModConfig defaults = new CleanMcModConfig();
     private final List<Row> rows = new ArrayList<>();
-    private final Map<String, Integer> headers = new HashMap<>();
+    private final List<Header> headers = new ArrayList<>();
 
     private TextFieldWidget search;
     private String filter = "";
@@ -82,10 +100,10 @@ public class CacheSettingsScreen extends Screen {
     protected void init() {
         this.scan = service.scan();
         this.rows.clear();
-        this.headers.clear();
 
-        this.search = new TextFieldWidget(this.textRenderer, MARGIN, CONTENT_TOP - 26,
-                Math.min(220, this.width / 2), 20, Lang.text("cleanmcmod.settings.search"));
+        int searchWidth = Math.min(170, Math.max(110, this.width / 4));
+        this.search = new TextFieldWidget(this.textRenderer, this.width - MARGIN - searchWidth,
+                TITLE_Y - 3, searchWidth, 16, Lang.text("cleanmcmod.settings.search"));
         this.search.setPlaceholder(Lang.text("cleanmcmod.settings.search"));
         this.search.setText(this.filter);
         this.search.setChangedListener(text -> {
@@ -103,7 +121,7 @@ public class CacheSettingsScreen extends Screen {
                             pressed.setMessage(stateLabel(entry));
                             layout();
                         })
-                        .dimensions(this.width - MARGIN - CONTROL_WIDTH, CONTENT_TOP, CONTROL_WIDTH, 18)
+                        .dimensions(MARGIN, HERO_TOP, CONTROL, 16)
                         .build();
                 case LANGUAGE -> ButtonWidget.builder(languageLabel(), pressed -> {
                             String next = Lang.next(service.config().language);
@@ -112,14 +130,11 @@ public class CacheSettingsScreen extends Screen {
                             service.saveConfig();
                             pressed.setMessage(languageLabel());
                         })
-                        .dimensions(this.width - MARGIN - CONTROL_WIDTH, CONTENT_TOP, CONTROL_WIDTH, 18)
+                        .dimensions(MARGIN, HERO_TOP, CONTROL, 16)
                         .build();
-                case INFO -> null;
             };
             this.rows.add(new Row(entry, button));
-            if (button != null) {
-                this.addDrawableChild(button);
-            }
+            this.addDrawableChild(button);
         }
 
         this.addDrawableChild(ButtonWidget.builder(Lang.text("cleanmcmod.settings.reset"),
@@ -145,76 +160,116 @@ public class CacheSettingsScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 14, 0xFFFFFFFF);
+        context.drawText(this.textRenderer, this.title, MARGIN, TITLE_Y, 0xFFFFFFFF, false);
+        renderHero(context);
+        renderColumns(context, mouseX, mouseY);
+        renderExplanation(context);
+    }
 
-        int contentRight = this.width - MARGIN;
+    /** The card: the mod, its version, what it frees right now, and where it comes from. */
+    private void renderHero(DrawContext context) {
+        int left = MARGIN;
+        int right = this.width - MARGIN;
+        int top = HERO_TOP;
+        context.fill(left, top, right, top + HERO_HEIGHT, 0x55101418);
+        context.fill(left, top, right, top + 1, 0x667FE07F);
+        context.fill(left, top, left + 1, top + HERO_HEIGHT, 0x337FE07F);
+
+        drawIcon(context, left + 8, top + 13);
+        int textLeft = left + 58;
+        int textRight = right - 6;
+
+        Text name = Text.literal("CleanMCMod " + version());
+        context.drawText(this.textRenderer, name, textLeft, top + 8, 0xFFFFFFFF, false);
+        Text stats = Lang.text("cleanmcmod.about.stats", found(), presentCategories(),
+                Lang.SHIPPED.size());
+        int statsWidth = this.textRenderer.getWidth(stats);
+        if (textLeft + this.textRenderer.getWidth(name) + 12 < textRight - statsWidth) {
+            context.drawText(this.textRenderer, stats, textRight - statsWidth, top + 8,
+                    Texts.COLOR_INFO, false);
+        }
+        context.drawText(this.textRenderer, trim(Lang.text("cleanmcmod.about.tagline"),
+                textRight - textLeft), textLeft, top + 22, Texts.COLOR_INFO, false);
+        context.drawText(this.textRenderer, trim(Lang.text("cleanmcmod.about.creator"),
+                textRight - textLeft), textLeft, top + 36, 0xFFFFFFFF, false);
+        context.drawText(this.textRenderer, trim(Lang.text("cleanmcmod.about.links"),
+                textRight - textLeft), textLeft, top + 50, Texts.COLOR_OK, false);
+    }
+
+    /**
+     * The card slot: the mod's own icon in the frame the drawn broom used to sit in. The texture is
+     * registered once by {@link ModIcons#own()} from the jar itself, so the card and the mod list show
+     * the same image.
+     */
+    private void drawIcon(DrawContext context, int x, int y) {
+        context.fill(x, y, x + 40, y + 40, 0xAA16301D);
+        context.fill(x, y, x + 40, y + 1, 0x667FE07F);
+        context.fill(x, y + 39, x + 40, y + 40, 0x667FE07F);
+        Identifier icon = ModIcons.own();
+        if (icon != null) {
+            int size = ModIcons.cardSize();
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, icon, x + 4, y + 4, 0f, 0f, size,
+                    size, size, size, 0xFFFFFFFF);
+        }
+    }
+
+    private void renderColumns(DrawContext context, int mouseX, int mouseY) {
         int bottom = this.height - FOOTER;
-        context.fill(MARGIN - 4, CONTENT_TOP - 4, contentRight + 4, bottom, 0x33101010);
-
         this.hovered = null;
-        for (Map.Entry<String, Integer> header : headers.entrySet()) {
-            int y = header.getValue();
-            if (y < CONTENT_TOP - HEADER_HEIGHT || y >= bottom) {
+        for (Header header : headers) {
+            if (header.y() < HERO_TOP + HERO_HEIGHT || header.y() >= bottom) {
                 continue;
             }
-            context.drawText(this.textRenderer, Lang.text(header.getKey()), MARGIN, y + 6,
+            context.drawText(this.textRenderer, Lang.text(header.key()), header.x(), header.y() + 2,
                     Texts.COLOR_OK, false);
-            context.fill(MARGIN, y + 17, contentRight, y + 18, 0x33FFFFFF);
         }
-
         for (Row row : rows) {
             if (!row.visible) {
                 continue;
             }
             int y = row.y;
-            boolean isHovered = mouseX >= MARGIN && mouseX <= contentRight
-                    && mouseY >= y && mouseY < y + ROW_HEIGHT;
+            boolean isHovered = mouseX >= row.x && mouseX <= row.x + columnWidth()
+                    && mouseY >= y && mouseY < y + ROW;
             if (isHovered) {
                 this.hovered = row;
-                context.fill(MARGIN - 4, y, contentRight, y + ROW_HEIGHT - 2, 0x22FFFFFF);
-            }
-            if (row.entry.kind() == Kind.INFO) {
-                context.drawText(this.textRenderer, info(row.entry), MARGIN + 4, y + 5,
-                        Texts.COLOR_INFO, false);
-                continue;
+                context.fill(row.x - 2, y - 1, row.x + columnWidth(), y + ROW - 2, 0x22FFFFFF);
             }
             boolean modified = row.entry.kind() == Kind.TOGGLE
                     && row.entry.getter().get() != row.entry.defaultValue();
             Text label = Lang.text(row.entry.labelKey());
             Text name = modified ? Text.literal("● ").append(label) : label;
-            context.drawText(this.textRenderer, name, MARGIN + 4, y + 5, 0xFFFFFFFF, false);
+            int room = columnWidth() - CONTROL - 8;
+            context.drawText(this.textRenderer,
+                    Text.literal(this.textRenderer.trimToWidth(name.getString(), room)),
+                    row.x, y + 4, 0xFFFFFFFF, false);
 
-            Text detail = row.entry.kind() == Kind.INFO ? null : measure(row.entry);
+            Text detail = measure(row.entry);
             if (detail != null) {
                 int width = this.textRenderer.getWidth(detail);
-                int limit = this.width - MARGIN - CONTROL_WIDTH - 10;
-                if (limit - width > MARGIN + 60) {
-                    context.drawText(this.textRenderer, detail, limit - width, y + 5, Texts.COLOR_INFO, false);
+                int limit = row.x + columnWidth() - CONTROL - 6;
+                if (limit - width > row.x + 40) {
+                    context.drawText(this.textRenderer, detail, limit - width, y + 4,
+                            Texts.COLOR_INFO, false);
                 }
             }
         }
 
         if (maxScroll > 0) {
-            int trackTop = CONTENT_TOP;
-            int trackHeight = bottom - CONTENT_TOP;
-            int thumbHeight = Math.max(16, (int) (trackHeight
+            int trackTop = HERO_TOP + HERO_HEIGHT + 6;
+            int trackHeight = Math.max(10, bottom - trackTop);
+            int thumbHeight = Math.max(14, (int) (trackHeight
                     * (trackHeight / (double) (trackHeight + maxScroll))));
             int thumbTop = trackTop + (int) ((trackHeight - thumbHeight) * (scroll / maxScroll));
-            context.fill(contentRight + 2, trackTop, contentRight + 4, trackTop + trackHeight, 0x22FFFFFF);
-            context.fill(contentRight + 2, thumbTop, contentRight + 4, thumbTop + thumbHeight, 0x88FFFFFF);
+            int x = this.width - MARGIN + 2;
+            context.fill(x, trackTop, x + 2, trackTop + trackHeight, 0x22FFFFFF);
+            context.fill(x, thumbTop, x + 2, thumbTop + thumbHeight, 0x88FFFFFF);
         }
-
-        renderExplanation(context);
-    }
-
-    private Text info(Entry entry) {
-        return Lang.text(entry.labelKey(), version());
     }
 
     private void renderExplanation(DrawContext context) {
         Text line;
         int color = Texts.COLOR_INFO;
-        if (this.hovered == null || this.hovered.entry.kind() == Kind.INFO) {
+        if (this.hovered == null) {
             line = Lang.text("cleanmcmod.screen.settings.intro");
         } else if (this.hovered.entry.kind() == Kind.LANGUAGE) {
             line = Lang.text("cleanmcmod.settings.language.hint");
@@ -233,56 +288,76 @@ public class CacheSettingsScreen extends Screen {
         }
         context.drawCenteredTextWithShadow(this.textRenderer,
                 Text.literal(this.textRenderer.trimToWidth(line.getString(), this.width - 2 * MARGIN)),
-                this.width / 2, this.height - 50, color);
+                this.width / 2, this.height - 46, color);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount,
             double verticalAmount) {
         if (maxScroll > 0) {
-            this.scroll = Math.max(0, Math.min(maxScroll, this.scroll - verticalAmount * ROW_HEIGHT));
+            this.scroll = Math.max(0, Math.min(maxScroll, this.scroll - verticalAmount * ROW));
             layout();
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
-    /** Places every row under its group header, keeping the ones scrolled out of view hidden. */
+    /** Places the rows in one or two columns, hiding the ones scrolled out of view. */
     private void layout() {
-        int bottom = this.height - FOOTER;
-        int y = CONTENT_TOP - (int) scroll;
-        String section = null;
-        headers.clear();
         for (Row row : rows) {
             row.visible = false;
-            if (row.button != null) {
-                row.button.visible = false;
-            }
-            if (!matches(row.entry)) {
-                continue;
-            }
-            if (!row.entry.sectionKey().equals(section)) {
-                section = row.entry.sectionKey();
-                headers.put(section, y);
-                y += HEADER_HEIGHT;
-            }
-            row.y = y;
-            row.visible = y + ROW_HEIGHT > CONTENT_TOP && y < bottom;
-            if (row.button != null) {
-                row.button.setX(this.width - MARGIN - CONTROL_WIDTH);
-                row.button.setY(y + 2);
+            row.button.visible = false;
+        }
+        headers.clear();
+        int top = HERO_TOP + HERO_HEIGHT + 8;
+        int width = this.width - 2 * MARGIN;
+        boolean twoColumns = width >= 380 && this.filter.isBlank();
+        int column = columnWidth();
+        int leftEnd = place(LEFT_SECTIONS, MARGIN, column, top);
+        int rightEnd = twoColumns
+                ? place(RIGHT_SECTIONS, MARGIN + column + 10, column, top)
+                : place(RIGHT_SECTIONS, MARGIN, column, leftEnd);
+        int contentBottom = Math.max(leftEnd, rightEnd);
+        int viewport = Math.max(10, (this.height - FOOTER) - top);
+        this.maxScroll = Math.max(0, (contentBottom - top) - viewport);
+        if (scroll > maxScroll) {
+            scroll = maxScroll;
+        }
+    }
+
+    /** Lays one column out from an unscrolled y and returns the unscrolled y it ends at. */
+    private int place(List<String> sections, int x, int width, int startY) {
+        int y = startY - (int) scroll;
+        for (String section : sections) {
+            boolean titled = false;
+            for (Row row : rows) {
+                if (!row.entry.sectionKey().equals(section) || !matches(row.entry)) {
+                    continue;
+                }
+                if (!titled) {
+                    headers.add(new Header(section, x, y));
+                    titled = true;
+                    y += HEADER;
+                }
+                row.x = x;
+                row.y = y;
+                row.visible = y + ROW > HERO_TOP + HERO_HEIGHT && y < this.height - FOOTER;
+                row.button.setX(x + width - CONTROL);
+                row.button.setY(y);
                 row.button.setMessage(row.entry.kind() == Kind.TOGGLE
                         ? stateLabel(row.entry)
                         : languageLabel());
                 row.button.visible = row.visible;
+                y += ROW;
             }
-            y += ROW_HEIGHT;
         }
-        int contentHeight = y + (int) scroll - CONTENT_TOP;
-        this.maxScroll = Math.max(0, contentHeight - (bottom - CONTENT_TOP));
-        if (scroll > maxScroll) {
-            scroll = maxScroll;
-        }
+        return y + (int) scroll;
+    }
+
+    /** How wide a row is: half the page on a wide window, the whole page on a narrow one. */
+    private int columnWidth() {
+        int width = this.width - 2 * MARGIN;
+        return width >= 380 && this.filter.isBlank() ? (width - 10) / 2 : width;
     }
 
     private boolean matches(Entry entry) {
@@ -317,7 +392,20 @@ public class CacheSettingsScreen extends Screen {
         if (files == 0) {
             return Lang.text("cleanmcmod.status.missing");
         }
-        return Text.literal(files + " · " + piboh.cleanmc.mod.clean.CleanReport.formatBytes(bytes));
+        return Text.literal(files + " · " + CleanReport.formatBytes(bytes));
+    }
+
+    /** What the last scan found, for the card: the whole answer at a glance. */
+    private String found() {
+        return this.scan == null ? CleanReport.formatBytes(0) : CleanReport.formatBytes(this.scan.bytes());
+    }
+
+    private int presentCategories() {
+        return this.scan == null ? 0 : this.scan.presentCount();
+    }
+
+    private Text trim(Text text, int width) {
+        return Text.literal(this.textRenderer.trimToWidth(text.getString(), Math.max(20, width)));
     }
 
     private List<CacheTarget> targetsFor(Entry option) {
@@ -378,21 +466,23 @@ public class CacheSettingsScreen extends Screen {
                 new Entry("cleanmcmod.setting.dry_run", "cleanmcmod.settings.tab.advanced", Kind.TOGGLE,
                         null, defaults.dryRun, () -> config.dryRun, value -> config.dryRun = value),
                 new Entry("cleanmcmod.settings.language", "cleanmcmod.settings.section.interface",
-                        Kind.LANGUAGE, null, false, () -> false, null),
-                new Entry("cleanmcmod.about.version", "cleanmcmod.settings.section.about", Kind.INFO,
-                        null, false, () -> false, null),
-                new Entry("cleanmcmod.about.creator", "cleanmcmod.settings.section.about", Kind.INFO,
-                        null, false, () -> false, null),
-                new Entry("cleanmcmod.about.inspired", "cleanmcmod.settings.section.about", Kind.INFO,
-                        null, false, () -> false, null),
-                new Entry("cleanmcmod.about.links", "cleanmcmod.settings.section.about", Kind.INFO,
-                        null, false, () -> false, null));
+                        Kind.LANGUAGE, null, false, () -> false, null));
     }
 
     private static String version() {
         return FabricLoader.getInstance().getModContainer("cleanmcmod")
                 .map(container -> container.getMetadata().getVersion().getFriendlyString())
                 .orElse("");
+    }
+
+    /** Darkens the world instead of blurring it: see {@link ScreenBackdrop}. */
+    @Override
+    public void renderBackground(net.minecraft.client.gui.DrawContext context, int mouseX, int mouseY,
+            float delta) {
+        if (this.client != null && this.client.world == null) {
+            this.renderPanoramaBackground(context, delta);
+        }
+        ScreenBackdrop.dim(context, this.width, this.height);
     }
 
     @Override
