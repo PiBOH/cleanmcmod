@@ -219,6 +219,17 @@ public abstract class AbstractUpdatesScreen extends Screen {
         }
     }
 
+    /** The last line the worker wrote, kept on screen after the job ended. */
+    private void renderStatus(GuiGraphicsExtractor graphics) {
+        String status = service.status();
+        if (status == null || status.isBlank()) {
+            return;
+        }
+        graphics.centeredText(this.font,
+                Component.literal(this.font.plainSubstrByWidth(status, listWidth())), this.width / 2, 52,
+                Texts.COLOR_INFO);
+    }
+
     private void updateButtons(ModUpdaterService.Snapshot snapshot) {
         if (this.downloadSelected != null) {
             this.downloadSelected.setMessage(Lang.text(

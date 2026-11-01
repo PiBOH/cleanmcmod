@@ -4,6 +4,7 @@
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
   "cleanmcmod.about.tagline": "Очищает кэш, из-за которого игра рисует неправильно, и обновляет моды с Modrinth, CurseForge и GitHub.",
   "cleanmcmod.about.client_only": "Только клиент: на сервер не устанавливается.",
+  "cleanmcmod.about.stats": "%s найдено · %s категорий · %s языков",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "Изменить...",
   "cleanmcmod.button.clean": "Очистить",
