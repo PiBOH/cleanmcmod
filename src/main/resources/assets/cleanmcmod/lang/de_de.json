@@ -4,6 +4,7 @@
   "cleanmcmod.about.links": "modrinth.com/mod/cleanmcmod · github.com/PiBOH/cleanmcmod",
   "cleanmcmod.about.tagline": "Räumt die Caches auf, durch die das Spiel falsch zeichnet, und aktualisiert deine Mods von Modrinth, CurseForge und GitHub.",
   "cleanmcmod.about.client_only": "Nur clientseitig: wird nie auf einem Server installiert.",
+  "cleanmcmod.about.stats": "%s gefunden · %s Kategorien · %s Sprachen",
   "cleanmcmod.about.version": "CleanMCMod %s",
   "cleanmcmod.button.change": "Ändern...",
   "cleanmcmod.button.clean": "Jetzt bereinigen",
