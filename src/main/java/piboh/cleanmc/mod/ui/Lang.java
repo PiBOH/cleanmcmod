@@ -57,11 +57,6 @@ public final class Lang {
     private Lang() {
     }
 
-    /** The code in use, or an empty string when the mod follows the game language. */
-    public static String selected() {
-        return selected;
-    }
-
     /** Loads a locale, or returns to the game language when the code is empty. */
     public static void select(String code) {
         selected = code == null ? "" : code.trim().toLowerCase(Locale.ROOT);
