@@ -73,6 +73,11 @@ public final class ModUpdaterService {
         List<ModUpdate> check(List<LocalMod> mods) throws IOException, InterruptedException;
     }
 
+    /** A checker that can say what it is doing right now, one line at a time. */
+    public interface StatusAware {
+        String statusLine();
+    }
+
     /** A checker that can say how far it got, so the screen can draw a real progress bar. */
     public interface ProgressAware {
         void progressListener(BiConsumer<Integer, Integer> listener);
@@ -146,7 +151,17 @@ public final class ModUpdaterService {
      * at. Null when nothing is running, so the screen never shows a stale line.
      */
     public String status() {
-        return status;
+        String current = status;
+        if (current != null && !current.isBlank()) {
+            return current;
+        }
+        if (checker instanceof StatusAware aware) {
+            String reported = aware.statusLine();
+            if (reported != null && !reported.isBlank()) {
+                return reported;
+            }
+        }
+        return null;
     }
 
     /**
@@ -241,7 +256,7 @@ public final class ModUpdaterService {
             }
             CleanMcMod.LOGGER.info("Mod update install finished: {}/{} installed",
                     outcomes.stream().filter(ModInstaller.Outcome::success).count(), outcomes.size());
-            status = null;
+            // The last line stays on screen: a log that vanishes when the job ends reads as a crash.
 
             try {
                 List<LocalMod> mods = scanner.scan(gameDir);

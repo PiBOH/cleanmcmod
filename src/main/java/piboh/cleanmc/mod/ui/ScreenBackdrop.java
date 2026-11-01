@@ -15,8 +15,8 @@ final class ScreenBackdrop {
     private ScreenBackdrop() {
     }
 
-    /** The darkest and lightest ends of the gradient, the same pair the game uses. */
+    /** A translucent dim: enough to read text, light enough to keep seeing the world. */
     static void dim(DrawContext context, int width, int height) {
-        context.fillGradient(0, 0, width, height, 0xC0101010, 0xD0101010);
+        context.fillGradient(0, 0, width, height, 0x30101010, 0x50101010);
     }
 }
